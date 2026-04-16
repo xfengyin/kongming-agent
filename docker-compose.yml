@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  kongming:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kongming
+    ports:
+      - "8080:8080"  # API Server
+      - "9090:9090"  # Metrics
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./configs:/app/configs:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - kongming-net
+    depends_on:
+      - jaeger
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: kongming-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./deployments/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - kongming-net
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: kongming-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deployments/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./deployments/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - kongming-net
+    depends_on:
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: kongming-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # Collector
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+    networks:
+      - kongming-net
+
+networks:
+  kongming-net:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

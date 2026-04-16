@@ -1,0 +1,62 @@
+# Kongming 孔明军师系统配置
+version: "1.0"
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 30s
+
+# 功能开关
+features:
+  enable_metrics: true
+  enable_tracing: true
+  enable_observatory: true
+
+# 观测配置
+observatory:
+  metrics_port: 9090
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:14268/api/traces"
+    sampling_rate: 1.0
+
+# 军师配置
+commander:
+  default_timeout: 30s
+  max_concurrent_orders: 100
+
+# 五虎将配置
+generals:
+  pool_size: 5
+  default_timeout: 60s
+
+# 锦囊库配置
+vault:
+  dir: "./strategies"
+  auto_reload: true
+
+# 八卦阵配置
+bagua:
+  default_mode: "dizai"
+  max_parallel_nodes: 10
+
+# 传令兵配置
+courier:
+  inbox_size: 1000
+  outbox_size: 1000
+  delivery_timeout: 30s
+
+# 复读机配置
+repeater:
+  max_attempts: 3
+  initial_backoff: 100ms
+  max_backoff: 30s
+  backoff_factor: 2.0
+
+# 熔断器配置
+circuit_breaker:
+  threshold: 5
+  timeout: 60s

@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'kongming'
+    environment: 'production'
+
+scrape_configs:
+  - job_name: 'kongming'
+    static_configs:
+      - targets: ['kongming:9090']
+        labels:
+          service: 'kongming'
+          app: 'zhuge-kongming'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}'
