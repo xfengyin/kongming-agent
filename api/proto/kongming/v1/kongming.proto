@@ -1,0 +1,83 @@
+syntax = "proto3";
+package kongming.v1;
+option go_package = "github.com/zhuge/kongming/api/proto/kongming/v1;kongmingv1";
+
+import "google/protobuf/timestamp.proto";
+
+service Kongming {
+  rpc Dispatch(DispatchRequest) returns (DispatchResponse);
+  rpc GetOrder(GetOrderRequest) returns (Order);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc ListGenerals(ListGeneralsRequest) returns (ListGeneralsResponse);
+  rpc ListJinnang(ListJinnangRequest) returns (ListJinnangResponse);
+  rpc ExecuteJinnang(ExecuteJinnangRequest) returns (ExecuteJinnangResponse);
+  rpc RunWorkflow(RunWorkflowRequest) returns (RunWorkflowResponse);
+}
+
+message DispatchRequest {
+  string name = 1;
+  string description = 2;
+  int32 priority = 3;
+  map<string, string> context = 4;
+  repeated string objectives = 5;
+}
+
+message DispatchResponse {
+  string order_id = 1;
+  bool success = 2;
+  string message = 3;
+  string report_json = 4;
+}
+
+message GetOrderRequest { string id = 1; }
+
+message Order {
+  string id = 1;
+  string name = 2;
+  int32 state = 3;
+  int32 priority = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ListOrdersRequest { int32 state_filter = 1; }
+message ListOrdersResponse { repeated Order orders = 1; }
+
+message ListGeneralsRequest {}
+message General {
+  string id = 1;
+  string name = 2;
+  string title = 3;
+  repeated string skills = 4;
+  int32 state = 5;
+}
+message ListGeneralsResponse { repeated General generals = 1; }
+
+message ListJinnangRequest {}
+message Jinnang {
+  string id = 1;
+  string name = 2;
+  int32 type = 3;
+  string version = 4;
+}
+message ListJinnangResponse { repeated Jinnang jinnangs = 1; }
+
+message ExecuteJinnangRequest {
+  string id = 1;
+  map<string, string> params = 2;
+  bytes data = 3;
+}
+message ExecuteJinnangResponse {
+  bool success = 1;
+  bytes data = 2;
+  string error = 3;
+}
+
+message RunWorkflowRequest {
+  string workflow_id = 1;
+  map<string, string> inputs = 2;
+}
+message RunWorkflowResponse {
+  bool success = 1;
+  string error = 2;
+  map<string, string> node_states = 3;
+}
