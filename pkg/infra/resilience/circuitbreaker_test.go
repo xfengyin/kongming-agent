@@ -57,8 +57,8 @@ func TestCircuitBreaker_HalfOpen_FailureReopen(t *testing.T) {
 	_ = cb.Allow()
 	cb.Record(errors.New("fail"))
 	time.Sleep(60 * time.Millisecond) // 越过 50ms 冷却
-	_ = cb.Allow()                     // 转入 HalfOpen 占用试探位
-	cb.Record(errors.New("fail"))      // 试探失败
+	_ = cb.Allow()                    // 转入 HalfOpen 占用试探位
+	cb.Record(errors.New("fail"))     // 试探失败
 	assert.Equal(t, StateOpen, cb.GetState(), "试探失败应立即转 Open")
 	// 立即请求：仍在 50ms 冷却内 → 拒绝
 	assert.Equal(t, ErrCircuitOpen, cb.Allow())
@@ -79,10 +79,10 @@ func TestCircuitBreaker_ConcurrentProbes(t *testing.T) {
 
 	const N = 100
 	var (
-		wg       sync.WaitGroup
-		allowed  atomic.Int32
-		denied   atomic.Int32
-		start    = make(chan struct{}) // 让所有 goroutine 同时起跑
+		wg      sync.WaitGroup
+		allowed atomic.Int32
+		denied  atomic.Int32
+		start   = make(chan struct{}) // 让所有 goroutine 同时起跑
 	)
 	for i := 0; i < N; i++ {
 		wg.Add(1)
