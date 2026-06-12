@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -63,7 +64,12 @@ func NewObserver(ctx context.Context, cfg config.ObservatoryConfig, logger *zap.
 // initTracing 初始化 OTel TracerProvider，使用 OTLP/HTTP exporter 推送 span。
 // 资源属性直接用 attribute.KeyValue 构造，避免引入 semconv 包。
 func (o *Observer) initTracing(ctx context.Context, cfg config.TracingConfig) error {
-	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpoint(cfg.Endpoint))
+	opts := []otlptracehttp.Option{otlptracehttp.WithEndpoint(cfg.Endpoint)}
+	// 当 endpoint 不含 https:// 前缀时使用 insecure（纯 host:port 视作 HTTP）
+	if !strings.HasPrefix(strings.ToLower(cfg.Endpoint), "https://") {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+	exporter, err := otlptracehttp.New(ctx, opts...)
 	if err != nil {
 		return fmt.Errorf("create otlp exporter: %w", err)
 	}
