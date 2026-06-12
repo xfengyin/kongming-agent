@@ -25,7 +25,7 @@ observatory:
   tracing:
     enabled: true
     exporter: otlp
-    endpoint: "http://localhost:4318/v1/traces"
+    endpoint: "localhost:4318"
     sampling_rate: 1.0
   log:
     level: info
