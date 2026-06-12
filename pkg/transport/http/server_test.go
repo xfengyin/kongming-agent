@@ -3,9 +3,11 @@ package http
 import (
 	"bytes"
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -180,4 +182,64 @@ func TestServer_AllRoutesRegistered(t *testing.T) {
 	for _, e := range expected {
 		assert.True(t, paths[e], "路由未注册: %s", e)
 	}
+}
+
+// TestServer_ListenAndServe_OK 端到端：实际监听随机端口并能 Shutdown 关闭。
+func TestServer_ListenAndServe_OK(t *testing.T) {
+	// 启动一个空 listener，把端口号取出来传给 Server。
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := lis.Addr().String()
+	lis.Close() // 立即关闭；Server.ListenAndServe 会再 Listen 同地址
+
+	srv := NewServer(Deps{
+		Commander: &mockCommander{},
+		Logger:    zap.NewNop(),
+		Addr:      addr,
+	})
+
+	// 后台启动服务。
+	errCh := make(chan error, 1)
+	go func() { errCh <- srv.ListenAndServe() }()
+
+	// 等待 server 就绪（最多 2s）。
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		c, derr := net.DialTimeout("tcp", addr, 100*time.Millisecond)
+		if derr == nil {
+			c.Close()
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	// 发出真实 HTTP 请求。
+	resp, err := http.Get("http://" + addr + "/healthz")
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Shutdown 优雅关闭。
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	require.NoError(t, srv.Shutdown(ctx))
+
+	// ListenAndServe 应当返回 http.ErrServerClosed。
+	select {
+	case e := <-errCh:
+		assert.ErrorIs(t, e, http.ErrServerClosed)
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not exit in time")
+	}
+}
+
+// TestServer_ListenAndServe_BadAddr 端到端：监听非法地址应返回错误（非 nil）。
+func TestServer_ListenAndServe_BadAddr(t *testing.T) {
+	srv := NewServer(Deps{
+		Commander: &mockCommander{},
+		Logger:    zap.NewNop(),
+		Addr:      "invalid-host-does-not-exist:99999",
+	})
+	err := srv.ListenAndServe()
+	assert.Error(t, err)
 }
