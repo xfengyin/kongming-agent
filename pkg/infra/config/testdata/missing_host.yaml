@@ -1,0 +1,5 @@
+# 故意触发 validator 失败：host 为空
+server:
+  host: ""
+  port: 8080
+  grpc_port: 8081

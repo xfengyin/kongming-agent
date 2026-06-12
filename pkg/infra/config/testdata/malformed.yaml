@@ -1,0 +1,4 @@
+# YAML 格式但内容格式错误（缩进错误 / 语法错），用于 ReadConfig 错误路径
+server:
+  host: "0.0.0.0"
+ port: bad_indent

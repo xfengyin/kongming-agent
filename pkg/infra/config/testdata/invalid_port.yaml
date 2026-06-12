@@ -1,0 +1,5 @@
+# 故意触发 validator 失败：port 越界（必须 1-65535）
+server:
+  host: "0.0.0.0"
+  port: 70000
+  grpc_port: 8081

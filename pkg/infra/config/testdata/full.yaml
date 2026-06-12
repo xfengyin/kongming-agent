@@ -1,0 +1,71 @@
+# Kongming 测试用完整配置（覆盖所有字段）
+version: "1.0"
+
+server:
+  host: "127.0.0.1"
+  port: 18080
+  grpc_port: 18081
+  read_timeout: 45s
+  write_timeout: 60s
+  shutdown_timeout: 15s
+
+features:
+  enable_metrics: true
+  enable_tracing: false
+  enable_observatory: true
+
+observatory:
+  metrics_port: 19090
+  tracing:
+    enabled: false
+    endpoint: "http://localhost:14268/api/traces"
+    sampling_rate: 0.5
+    exporter: "otlp"
+  log:
+    level: "debug"
+    encoding: "console"
+
+commander:
+  default_timeout: 25s
+  max_concurrent_orders: 50
+
+dispatcher:
+  queue_size: 500
+  timeout: 20s
+
+generals:
+  pool_size: 7
+  default_timeout: 90s
+
+bagua:
+  default_mode: "tiangai"
+  max_parallel_nodes: 16
+
+vault:
+  dir: "/var/lib/kongming/strategies"
+  auto_reload: false
+  builtin_only: true
+
+courier:
+  inbox_size: 2000
+  outbox_size: 3000
+  delivery_timeout: 45s
+
+resilience:
+  retry:
+    max_attempts: 5
+    initial_backoff: 50ms
+    max_backoff: 10s
+    backoff_factor: 1.5
+    jitter: false
+  circuit_breaker:
+    threshold: 10
+    timeout: 30s
+  rate_limit:
+    rps: 500
+    burst: 1000
+
+plugin:
+  dir: "/opt/kongming/plugins"
+  extensions: [".so"]
+  watch: false
