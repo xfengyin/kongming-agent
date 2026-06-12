@@ -2,6 +2,7 @@
 //   - 结构化日志（zap）
 //   - 链路追踪（OTel + OTLP HTTP exporter）
 //   - 指标（Prometheus）
+//
 // 以及贯穿全链路的 traceId 透传工具。
 package observability
 
