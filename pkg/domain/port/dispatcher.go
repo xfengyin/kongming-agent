@@ -22,10 +22,10 @@ type Executor interface {
 
 // Dispatcher 是「调度器」应用层端口，抽象出 3 个能力。
 //
-//  设计要点：
-//   - 异步派发：Dispatch 不阻塞，order 进入 worker pool 后立刻返回；
-//   - 优先级路由：按 order.Priority 找名为 "priority-<value>" 的 executor；
-//   - 优雅关闭：Wait 等待所有 in-flight 任务完成。
+//	设计要点：
+//	 - 异步派发：Dispatch 不阻塞，order 进入 worker pool 后立刻返回；
+//	 - 优先级路由：按 order.Priority 找名为 "priority-<value>" 的 executor；
+//	 - 优雅关闭：Wait 等待所有 in-flight 任务完成。
 type Dispatcher interface {
 	// Dispatch 把 order 投递到 worker pool，异步执行。
 	// 不返回执行结果（执行结果由 Executor 自行处理/上报）；
