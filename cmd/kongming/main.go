@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/zhuge/kongming/internal/memory"
 	"github.com/zhuge/kongming/pkg/bagua"
 	"github.com/zhuge/kongming/pkg/cmd_center"
 	"github.com/zhuge/kongming/pkg/courier"
@@ -88,8 +87,9 @@ func initLogger() {
 // ZhugeKongming 诸葛孔明
 type ZhugeKongming struct {
 	ctx             context.Context
-	cmdCenter       cmd_center.Commander
-	generalPool     generals.GeneralPool
+	cmdCenter       *cmd_center.Commander
+	expertPool      *generals.MoEExpertPool
+	expertRouter    generals.ExpertRouter
 	strategyVault   strategy_vault.Vault
 	baguaEngine     *bagua.Engine
 	courierService  *courier.Courier
@@ -100,11 +100,21 @@ type ZhugeKongming struct {
 }
 
 // NewZhugeKongming 创建诸葛孔明实例
+// 对齐 kimi-k3 架构：MoE 专家池 + 路由器 + 负载均衡器 + 执行器端口注入
 func NewZhugeKongming(ctx context.Context) *ZhugeKongming {
+	// 1. 构建 MoE 专家池（对应 kimi-k3 Stable LatentMoE）
+	pool := generals.NewMoEExpertPool()
+	// 2. 构建路由器 + 分位数负载均衡器（对应 kimi-k3 Quantile Balancing）
+	router := generals.NewMoERouter(pool, nil)
+	router.RegisterBalancer(generals.NewQuantileBalancer(0.3))
+	// 3. 构建专家执行器（实现 cmd_center.ExpertExecutor 端口）
+	expertExecutor := generals.NewMoEExpertExecutor(pool, router, 1)
+
 	zk := &ZhugeKongming{
 		ctx:             ctx,
-		cmdCenter:       cmd_center.NewCommander(logger),
-		generalPool:     generals.NewWuHuPool(),
+		cmdCenter:       cmd_center.NewCommander(logger, expertExecutor),
+		expertPool:      pool,
+		expertRouter:    router,
 		strategyVault:   strategy_vault.NewVault(),
 		baguaEngine:     bagua.NewEngine(),
 		courierService: courier.NewCourier(logger),

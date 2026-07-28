@@ -56,6 +56,21 @@ const (
 	PriorityUrgent                      // 紧急军情
 )
 
+func (s TaskPriority) String() string {
+	switch s {
+	case PriorityLow:
+		return "低"
+	case PriorityNormal:
+		return "普通"
+	case PriorityHigh:
+		return "高"
+	case PriorityUrgent:
+		return "紧急"
+	default:
+		return "未知"
+	}
+}
+
 // MilitaryOrder 军令（任务定义）
 type MilitaryOrder struct {
 	ID          string                 `json:"id" yaml:"id"`
@@ -127,8 +142,9 @@ type GeneralReport struct {
 	Data        map[string]interface{} `json:"data" yaml:"data"`
 }
 
-// Commander 军师接口
-type Commander interface {
+// CommanderPort 军师端口接口
+// 依赖倒置：定义军师核心能力，由 Commander 结构体实现
+type CommanderPort interface {
 	// Dispatch 颁布军令
 	Dispatch(ctx context.Context, order *MilitaryOrder) (*BattleReport, error)
 
@@ -143,6 +159,16 @@ type Commander interface {
 
 	// ListOrders 列出军令
 	ListOrders(state TaskState) []*MilitaryOrder
+}
+
+// ExpertExecutor 专家执行器端口
+// 依赖倒置：cmd_center 仅依赖此抽象，不依赖 generals 具体实现
+// 对齐 kimi-k3 接口隔离原则——主流程只看到最小必要接口
+type ExpertExecutor interface {
+	// ExecuteBySkill 按技能路由并执行（Top-1 激活），返回单专家报告
+	ExecuteBySkill(ctx context.Context, skill string, order *MilitaryOrder) (*GeneralReport, error)
+	// ExecuteBySkillTopK 按技能路由并执行（Top-K 激活），返回多专家聚合战报
+	ExecuteBySkillTopK(ctx context.Context, skill string, topK int, order *MilitaryOrder) (*BattleReport, error)
 }
 
 // Event 事件
