@@ -47,9 +47,13 @@ func (h *KongMingHandler) Execute(ctx context.Context, order *core.MilitaryOrder
 		question = q
 	}
 
-	// 组装消息：人设锦囊 + （可选）历史 + 主公当前问题
+	// 组装消息：人设锦囊 + （可选）知识库参考 + （可选）历史 + 主公当前问题
 	messages := []llm.Message{
 		{Role: llm.RoleSystem, Content: KongMingSystemPrompt},
+	}
+	// 轻量 RAG：知识库检索段落拼入上下文（见 examples/longzhong --knowledge）
+	if kb, ok := order.Context["knowledge"].(string); ok && kb != "" {
+		messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: kb})
 	}
 	if hist, ok := order.Context["history"].(*llm.History); ok && hist != nil && hist.Len() > 0 {
 		// 多轮历史原样透传（不截断、不重排）

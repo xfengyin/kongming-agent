@@ -8,9 +8,10 @@
 //   go run ./examples/longzhong/main.go              # 交互模式（一问一答，无历史）
 //   go run ./examples/longzhong/main.go --interactive  # 多轮交互（内存历史）
 //   go run ./examples/longzhong/main.go --ask "问题"   # 一问一答
+//   go run ./examples/longzhong/main.go --knowledge ./knowledge  # 轻量 RAG：检索知识库拼入上下文
 //
 // 无 Key 时可用 --mock 离线演示：
-//   go run ./examples/longzhong/main.go --mock --interactive
+//   go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge
 
 package main
 
@@ -25,6 +26,7 @@ import (
 
 	"github.com/zhuge/kongming/pkg/cmd_center"
 	"github.com/zhuge/kongming/pkg/generals"
+	"github.com/zhuge/kongming/pkg/knowledge"
 	"github.com/zhuge/kongming/pkg/llm"
 	"go.uber.org/zap"
 )
@@ -33,6 +35,7 @@ func main() {
 	mock := flag.Bool("mock", false, "使用本地 Mock Provider 离线演示（无需 API Key）")
 	oneShot := flag.String("ask", "", "一问一答模式：直接提问并退出")
 	interactive := flag.Bool("interactive", false, "多轮交互模式：stdin 循环对话并保留历史（默认一问一答，无历史）")
+	knowledgeDir := flag.String("knowledge", "", "轻量 RAG：本地知识库目录（读取 .md，检索相关段落拼入上下文）")
 	flag.Parse()
 
 	logger, err := zap.NewDevelopment()
@@ -67,13 +70,25 @@ func main() {
 	pool := generals.NewWuHuPoolWithLLM(provider)
 	commander := cmd_center.NewCommanderWithPool(logger, pool)
 
+	// 3. 轻量 RAG：加载本地知识库（可选）
+	var kb *knowledge.Store
+	if *knowledgeDir != "" {
+		var err error
+		kb, err = knowledge.Load(*knowledgeDir)
+		if err != nil {
+			fmt.Printf("❌ 知识库加载失败: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("📚 知识库已加载：%s（%d 个段落）\n", kb.Dir(), kb.Count())
+	}
+
 	fmt.Println()
 	fmt.Println("=== 隆中对 · 孔明军师 ===")
 	fmt.Println("主公有何要事相询？（输入 exit 退出）")
 	fmt.Println()
 
 	if *oneShot != "" {
-		ask(commander, *oneShot, nil)
+		ask(commander, *oneShot, nil, kb)
 		return
 	}
 
@@ -103,9 +118,9 @@ func main() {
 
 		// 多轮：历史随军令透传给诸葛亮；非多轮则不传
 		if *interactive {
-			ask(commander, question, history)
+			ask(commander, question, history, kb)
 		} else {
-			ask(commander, question, nil)
+			ask(commander, question, nil, kb)
 		}
 		fmt.Println()
 	}
@@ -114,12 +129,19 @@ func main() {
 // ask 向军师诸葛亮问计并打印战报。
 // history 非 nil 时启用多轮：把历史挂到军令 Context 透传给诸葛亮，
 // 并在战后把「主公问题 + 军师回复」追加进历史，供下一轮使用。
-func ask(commander *cmd_center.Commander, question string, history *llm.History) {
+// kb 非 nil 时启用轻量 RAG：先检索相关段落拼入军令 Context 作为参考。
+func ask(commander *cmd_center.Commander, question string, history *llm.History, kb *knowledge.Store) {
 	ctx := context.Background()
 	order := cmd_center.NewMilitaryOrder("隆中对", question, cmd_center.PriorityNormal)
 	order.Strategy.Generals = []string{"kongming"} // 点将：诸葛亮
 	if history != nil {
 		order.Context["history"] = history
+	}
+	if kb != nil {
+		if paras := kb.Search(question, 3); len(paras) > 0 {
+			order.Context["knowledge"] = formatKnowledge(paras)
+			fmt.Printf("📚 检索到 %d 段相关知识（%s）\n", len(paras), paras[0].Title)
+		}
 	}
 
 	report, err := commander.Dispatch(ctx, order)
@@ -151,6 +173,22 @@ func ask(commander *cmd_center.Commander, question string, history *llm.History)
 			fmt.Printf("（模型：%s）\n", model)
 		}
 	}
+}
+
+// formatKnowledge 把检索到的段落拼成参考上下文（标题 + 正文）
+func formatKnowledge(paras []knowledge.Paragraph) string {
+	var sb strings.Builder
+	sb.WriteString("以下是主公的军师知识库中与本问相关的记载，可参考但不必逐字引用：\n")
+	for i, p := range paras {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		if p.Title != "" {
+			sb.WriteString("【" + p.Title + "】\n")
+		}
+		sb.WriteString(p.Content)
+	}
+	return sb.String()
 }
 
 // llmEnvModel 读取当前模型配置（仅用于提示）

@@ -42,6 +42,7 @@ Three Kingdoms story that makes every concept memorable:
 - ✅ **Commander dispatch** — explicit general targeting (点将) or automatic skill-based selection (按技选将)
 - ✅ **Courier message routing** — typed messages with delivery status
 - ✅ **Prometheus metrics** — HTTP/LLM/order observability
+- ✅ **Lightweight RAG (v0.2.0+)** — `pkg/knowledge` reads local `.md` files and retrieves relevant paragraphs (token-frequency matching, zero vector DB / zero external deps)
 - ✅ **Core unit tests** — courier, generals, commander, LLM provider (httptest, no external network)
 
 **On the roadmap (not yet implemented):**
@@ -130,6 +131,15 @@ go run ./examples/longzhong/main.go --interactive
 # or offline: go run ./examples/longzhong/main.go --mock --interactive
 ```
 
+Knowledge-base mode (v0.2.0+, lightweight RAG — retrieves relevant passages from local `.md` files and injects them into the LLM context):
+
+```bash
+# try the bundled Three Kingdoms knowledge base
+go run ./examples/longzhong/main.go --knowledge ./knowledge --ask "司马懿兵临城下，如何用空城计退敌？"
+# combine with multi-turn: --interactive --knowledge ./knowledge
+# point at your own knowledge dir: --knowledge /path/to/your/markdown/docs
+```
+
 ## 🧪 Run the tests
 
 ```bash
@@ -152,6 +162,7 @@ kongming-agent/
 │   ├── cmd_center/          # 军师府 Commander dispatcher
 │   ├── generals/            # 五虎将 agent pool + 诸葛亮 LLM strategist
 │   ├── llm/                 # LLMProvider interface + OpenAI-compatible adapter
+│   ├── knowledge/           # lightweight RAG: local .md knowledge base (v0.2.0+)
 │   ├── courier/             # 传令兵 message routing
 │   ├── bagua/               # 八卦阵 workflow engine (roadmap)
 │   ├── dispatch/            # async task dispatcher

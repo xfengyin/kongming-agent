@@ -44,6 +44,7 @@
 - ✅ **军师府调度**：支持点名将领（strategy.Generals）与按技选将两种模式
 - ✅ **传令兵消息路由**：类型化消息 + 投递状态
 - ✅ **Prometheus 指标**：HTTP / LLM / 任务可观测
+- ✅ **轻量 RAG（v0.2.0+）**：`pkg/knowledge` 读取本地 .md 文件，按词频/包含匹配检索相关段落拼入上下文（零向量库、零外部依赖）
 - ✅ **核心单元测试**：courier / generals / commander / llm provider（httptest，无需外网）
 
 **Roadmap（尚未实装，勿被旧版 README 误导）：**
@@ -132,6 +133,15 @@ go run ./examples/longzhong/main.go --interactive
 # 离线多轮：go run ./examples/longzhong/main.go --mock --interactive
 ```
 
+知识库模式（v0.2.0+，轻量 RAG——检索本地 .md 相关段落注入 LLM 上下文）：
+
+```bash
+# 使用内置三国知识库
+go run ./examples/longzhong/main.go --knowledge ./knowledge --ask "司马懿兵临城下，如何用空城计退敌？"
+# 可叠加多轮：--interactive --knowledge ./knowledge
+# 指向你自己的知识目录：--knowledge /path/to/your/markdown/docs
+```
+
 ## 🧪 测试与构建
 
 ```bash
@@ -154,6 +164,7 @@ kongming-agent/
 │   ├── cmd_center/          # 军师府调度器
 │   ├── generals/            # 五虎将池 + 诸葛亮 LLM 将领
 │   ├── llm/                 # LLMProvider 接口 + OpenAI 兼容适配
+│   ├── knowledge/           # 轻量 RAG：本地 .md 知识库（v0.2.0+）
 │   ├── courier/             # 传令兵消息路由
 │   ├── bagua/               # 八卦阵工作流引擎（roadmap）
 │   ├── dispatch/            # 异步任务调度

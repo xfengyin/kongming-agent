@@ -129,3 +129,33 @@ func TestKongMingMultiTurnHistory(t *testing.T) {
 		t.Errorf("战报 turns 应为 4，实际 %v", report2.Data["turns"])
 	}
 }
+
+func TestKongMingWithKnowledgeContext(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingProvider{}
+	pool := NewWuHuPoolWithLLM(rec)
+
+	order := core.NewMilitaryOrder("问计", "如何用空城计退敌？", core.PriorityNormal)
+	// 模拟 examples/longzhong --knowledge 注入的知识上下文
+	order.Context["knowledge"] = "【空城计】司马懿大军压境，诸葛亮大开城门，焚香抚琴。司马懿疑有伏兵，退兵而去。"
+	report, err := pool.Execute(ctx, "kongming", order)
+	if err != nil {
+		t.Fatalf("执行失败: %v", err)
+	}
+	if !report.Success {
+		t.Fatalf("执行应成功: %s", report.Message)
+	}
+	// system(人设) + system(知识) + user = 3 条
+	if len(rec.lastMessages) != 3 {
+		t.Fatalf("期望 3 条消息（人设+知识+问题），实际 %d", len(rec.lastMessages))
+	}
+	if rec.lastMessages[1].Role != llm.RoleSystem || !strings.Contains(rec.lastMessages[1].Content, "空城计") {
+		t.Errorf("第 2 条应为知识库上下文，实际 %+v", rec.lastMessages[1])
+	}
+	if rec.lastMessages[2].Role != llm.RoleUser {
+		t.Errorf("第 3 条应为主公问题，实际 %+v", rec.lastMessages[2])
+	}
+	if turns, ok := report.Data["turns"].(int); !ok || turns != 3 {
+		t.Errorf("turns 应为 3，实际 %v", report.Data["turns"])
+	}
+}

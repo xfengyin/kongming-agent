@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **多轮历史透传**（`pkg/llm` / `pkg/generals`）：`KongMingHandler` 支持从
   `order.Context["history"]` 读取 `*llm.History`，messages 数组原样透传给
   Provider（不截断、不重排）；战报新增 `turns` 字段便于观察历史长度
+- **轻量 RAG 知识库**（`pkg/knowledge`）：`Load(dir)` 读取本地 .md 按段落切分，
+  `Search(query, limit)` 词频/包含匹配检索（零向量库、零外部依赖）；示例知识库
+  `knowledge/sanguo.md`（隆中对/空城计/草船借箭/木牛流马/七擒七纵 5 条）
+- **demo 接入 RAG**：`examples/longzhong --knowledge <dir>` 查询前检索相关段落
+  拼入系统上下文（可叠加 `--interactive` 多轮）
 - **推广文档**（`docs/PROMOTION.md`）：三国×AI 卖点、目标人群、Awesome/社区
   投稿清单、掘金/知乎两篇推广文草稿
 - **演示脚本**（`docs/demo.md`）：离线 mock / 真实 LLM / 多轮交互三条演示路径，
