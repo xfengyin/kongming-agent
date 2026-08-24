@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M5 (v0.4.0 候选)
+
+### Added
+- **结构化 JSON 输出**（`examples/longzhong`）：新增 `--json`，每轮输出一个
+  JSON 对象（`type/question/general/answer/model/success/turns/retrieved_knowledge`），
+  多轮结束输出 `session` 汇总（total_turns/questions/turns），可直接 pipe 给
+  jq / 脚本集成
+- **发布启动包**（`docs/LAUNCH_PACK.md`）：D-Day 执行清单、掘金/知乎/HN/
+  Awesome 四渠道最终稿、发布后 tracking 表、60–90s 录屏脚本（含 RAG/JSON 场景）
+
 ## [Unreleased] - M3 (v0.2.0 候选)
 
 ### Added

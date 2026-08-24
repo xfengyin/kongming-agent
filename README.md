@@ -140,6 +140,14 @@ go run ./examples/longzhong/main.go --knowledge ./knowledge --ask "司马懿兵�
 # point at your own knowledge dir: --knowledge /path/to/your/markdown/docs
 ```
 
+Structured JSON output (v0.4.0+, one JSON object per turn, `session` summary on multi-turn exit — easy to pipe to jq/scripts):
+
+```bash
+go run ./examples/longzhong/main.go --mock --json --ask "如何三分天下？"
+# {"type":"turn","question":"如何三分天下？","general":"诸葛亮","answer":"...","model":"mock-model","success":true,"turns":2}
+# multi-turn: --json --interactive ends with {"type":"session","total_turns":N,"questions":[...],"turns":[...]}
+```
+
 ## 🧪 Run the tests
 
 ```bash
