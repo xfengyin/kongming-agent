@@ -171,6 +171,15 @@ go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"
 go run ./examples/longzhong/main.go --tool calc --ask "天下大势如何？"
 ```
 
+配置文件支持（v0.7.0+，YAML 或 JSON；环境变量优先于文件）：
+
+```bash
+# 编辑 config.example.yaml（LLM 连接 / 知识库目录 / 默认工具）
+go run ./examples/longzhong/main.go --config config.example.yaml
+# 优先级：命令行 flag > 环境变量 > 配置文件 > 内置默认
+# 也支持 JSON：--config config.json
+```
+
 ## 🧪 测试与构建
 
 ```bash
@@ -191,6 +200,7 @@ kongming-agent/
 ├── pkg/
 │   ├── core/                # 共享域类型（军令/战报/战略）
 │   ├── cmd_center/          # 军师府调度器
+│   ├── config/              # YAML/JSON 配置加载（v0.7.0+）
 │   ├── generals/            # 五虎将池 + 诸葛亮 LLM 将领
 │   ├── llm/                 # LLMProvider 接口 + OpenAI 兼容适配
 │   ├── knowledge/           # 轻量 RAG：本地 .md 知识库（v0.2.0+）

@@ -169,6 +169,15 @@ go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"
 go run ./examples/longzhong/main.go --tool calc --ask "天下大势如何？"
 ```
 
+Config file support (v0.7.0+, YAML or JSON; env vars take priority over the file):
+
+```bash
+# edit config.example.yaml (LLM connection / knowledge dir / default tool)
+go run ./examples/longzhong/main.go --config config.example.yaml
+# priority: command-line flags > env vars > config file > defaults
+# JSON also works: --config config.json
+```
+
 ## 🧪 Run the tests
 
 ```bash
@@ -189,6 +198,7 @@ kongming-agent/
 ├── pkg/
 │   ├── core/                # shared domain types (order/report/strategy)
 │   ├── cmd_center/          # 军师府 Commander dispatcher
+│   ├── config/              # YAML/JSON config loading (v0.7.0+)
 │   ├── generals/            # 五虎将 agent pool + 诸葛亮 LLM strategist
 │   ├── llm/                 # LLMProvider interface + OpenAI-compatible adapter
 │   ├── knowledge/           # lightweight RAG: local .md knowledge base (v0.2.0+)
