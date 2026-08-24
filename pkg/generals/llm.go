@@ -47,12 +47,19 @@ func (h *KongMingHandler) Execute(ctx context.Context, order *core.MilitaryOrder
 		question = q
 	}
 
+	// 组装消息：人设锦囊 + （可选）历史 + 主公当前问题
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: KongMingSystemPrompt},
+	}
+	if hist, ok := order.Context["history"].(*llm.History); ok && hist != nil && hist.Len() > 0 {
+		// 多轮历史原样透传（不截断、不重排）
+		messages = append(messages, hist.Messages()...)
+	}
+	messages = append(messages, llm.Message{Role: llm.RoleUser, Content: question})
+
 	resp, err := h.Provider.Chat(ctx, llm.ChatRequest{
-		Model: "",
-		Messages: []llm.Message{
-			{Role: llm.RoleSystem, Content: KongMingSystemPrompt},
-			{Role: llm.RoleUser, Content: question},
-		},
+		Model:       "",
+		Messages:    messages,
 		Temperature: 0.7,
 		MaxTokens:   1024,
 	})
@@ -79,6 +86,7 @@ func (h *KongMingHandler) Execute(ctx context.Context, order *core.MilitaryOrder
 			"model":      resp.Model,
 			"provider":   h.Provider.Name(),
 			"elapsed_ms": float64(time.Since(start).Milliseconds()),
+			"turns":      len(messages), // 含人设的总消息条数，可观测多轮历史
 		},
 	}, nil
 }

@@ -33,8 +33,9 @@ func (m *MockProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 	if trimmed == "" {
 		trimmed = "（空问题）"
 	}
+	// 多轮演示：汇报收到的消息条数，便于观察历史透传
 	return &ChatResponse{
-		Content: fmt.Sprintf("[mock] 主公问：%s\n亮答：此乃天机，容亮细想——离线演示模式，请配置 KONGMING_API_KEY 接入真实 LLM。", trimmed),
+		Content: fmt.Sprintf("[mock] 主公问：%s\n亮答：此乃天机，容亮细想——离线演示模式，请配置 KONGMING_API_KEY 接入真实 LLM。（本轮收到 %d 条消息）", trimmed, len(req.Messages)),
 		Model:   "mock-model",
 	}, nil
 }

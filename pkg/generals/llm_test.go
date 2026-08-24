@@ -66,3 +66,66 @@ func TestKongMingSystemPrompt(t *testing.T) {
 		t.Errorf("人设应包含诸葛亮")
 	}
 }
+
+// recordingProvider 记录每次 Chat 收到的完整消息（断言多轮历史透传用）
+type recordingProvider struct {
+	llm.Provider
+	lastMessages []llm.Message
+}
+
+func (r *recordingProvider) Name() string { return "recording" }
+
+func (r *recordingProvider) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatResponse, error) {
+	r.lastMessages = req.Messages
+	return &llm.ChatResponse{Content: "亮已记下", Model: "recording-model"}, nil
+}
+
+func TestKongMingMultiTurnHistory(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingProvider{}
+	pool := NewWuHuPoolWithLLM(rec)
+	history := llm.NewHistory()
+
+	// 第一轮：无历史
+	order1 := core.NewMilitaryOrder("问计一", "第一问：天下大势？", core.PriorityNormal)
+	order1.Context["history"] = history
+	report1, err := pool.Execute(ctx, "kongming", order1)
+	if err != nil {
+		t.Fatalf("第一轮执行失败: %v", err)
+	}
+	if len(rec.lastMessages) != 2 {
+		t.Fatalf("第一轮应只有 [system, user]，实际 %d 条", len(rec.lastMessages))
+	}
+	if rec.lastMessages[0].Role != llm.RoleSystem || rec.lastMessages[1].Role != llm.RoleUser {
+		t.Errorf("第一轮消息角色错误: %+v", rec.lastMessages)
+	}
+	history.AddUser("第一问：天下大势？")
+	history.AddAssistant(report1.Data["answer"].(string))
+
+	// 第二轮：应透传第一轮完整历史
+	order2 := core.NewMilitaryOrder("问计二", "第二问：那我军当如何？", core.PriorityNormal)
+	order2.Context["history"] = history
+	report2, err := pool.Execute(ctx, "kongming", order2)
+	if err != nil {
+		t.Fatalf("第二轮执行失败: %v", err)
+	}
+	// system + 历史(user,assistant) + 当前user = 4 条
+	if len(rec.lastMessages) != 4 {
+		t.Fatalf("第二轮应透传历史共 4 条，实际 %d 条", len(rec.lastMessages))
+	}
+	if rec.lastMessages[1].Role != llm.RoleUser || rec.lastMessages[1].Content != "第一问：天下大势？" {
+		t.Errorf("第二轮应包含第一轮 user 消息，实际 %+v", rec.lastMessages[1])
+	}
+	if rec.lastMessages[2].Role != llm.RoleAssistant || rec.lastMessages[2].Content != "亮已记下" {
+		t.Errorf("第二轮应包含第一轮 assistant 消息，实际 %+v", rec.lastMessages[2])
+	}
+	if rec.lastMessages[3].Content != "第二问：那我军当如何？" {
+		t.Errorf("第二轮最后一条应为当前问题，实际 %+v", rec.lastMessages[3])
+	}
+	if !report2.Success {
+		t.Errorf("第二轮应成功: %s", report2.Message)
+	}
+	if turns, ok := report2.Data["turns"].(int); !ok || turns != 4 {
+		t.Errorf("战报 turns 应为 4，实际 %v", report2.Data["turns"])
+	}
+}

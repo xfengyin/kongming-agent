@@ -123,6 +123,13 @@ One-shot mode:
 go run ./examples/longzhong/main.go --ask "如何提升团队执行力？"
 ```
 
+Multi-turn mode (v0.2.0+, keeps in-memory conversation history):
+
+```bash
+go run ./examples/longzhong/main.go --interactive
+# or offline: go run ./examples/longzhong/main.go --mock --interactive
+```
+
 ## 🧪 Run the tests
 
 ```bash
