@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zhuge/kongming/pkg/cmd_center"
+	"github.com/zhuge/kongming/pkg/core"
 )
 
 // GeneralType 将领类型
@@ -27,14 +27,14 @@ const (
 type General struct {
 	ID          string                 `json:"id" yaml:"id"`
 	Name        string                 `json:"name" yaml:"name"`
-	Type        GeneralType           `json:"type" yaml:"type"`
+	Type        GeneralType            `json:"type" yaml:"type"`
 	Title       string                 `json:"title" yaml:"title"` // 称号
 	Description string                 `json:"description" yaml:"description"`
 	Skills      []string               `json:"skills" yaml:"skills"`
 	Traits      map[string]interface{} `json:"traits" yaml:"traits"`
 	Stats       GeneralStats           `json:"stats" yaml:"stats"`
 	State       GeneralState           `json:"state" yaml:"state"`
-	CreatedAt   time.Time             `json:"created_at" yaml:"created_at"`
+	CreatedAt   time.Time              `json:"created_at" yaml:"created_at"`
 }
 
 // GeneralStats 将领战绩
@@ -85,7 +85,7 @@ type GeneralPool interface {
 	List(filter GeneralFilter) []*General
 
 	// Execute 派遣执行
-	Execute(ctx context.Context, generalID string, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error)
+	Execute(ctx context.Context, generalID string, order *core.MilitaryOrder) (*core.GeneralReport, error)
 
 	// SelectBest 选择最佳将领
 	SelectBest(skill string) (*General, error)
@@ -110,7 +110,7 @@ type WuHuPool struct {
 
 // GeneralHandler 将领处理器
 type GeneralHandler interface {
-	Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error)
+	Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error)
 }
 
 // NewWuHuPool 创建五虎将池
@@ -262,7 +262,7 @@ func (p *WuHuPool) List(filter GeneralFilter) []*General {
 }
 
 // Execute 派遣执行
-func (p *WuHuPool) Execute(ctx context.Context, generalID string, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (p *WuHuPool) Execute(ctx context.Context, generalID string, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	general, err := p.Get(generalID)
 	if err != nil {
 		return nil, err
@@ -363,9 +363,9 @@ func (p *WuHuPool) calculateScore(g *General) float64 {
 // GuanYuHandler 关羽处理器
 type GuanYuHandler struct{}
 
-func (h *GuanYuHandler) Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (h *GuanYuHandler) Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	// 关羽执行情报搜集
-	return &cmd_center.GeneralReport{
+	return &core.GeneralReport{
 		GeneralID:   "guanyu",
 		GeneralName: "关羽",
 		Success:     true,
@@ -381,9 +381,9 @@ func (h *GuanYuHandler) Execute(ctx context.Context, order *cmd_center.MilitaryO
 // ZhangFeiHandler 张飞处理器
 type ZhangFeiHandler struct{}
 
-func (h *ZhangFeiHandler) Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (h *ZhangFeiHandler) Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	// 张飞执行数据工程
-	return &cmd_center.GeneralReport{
+	return &core.GeneralReport{
 		GeneralID:   "zhangfei",
 		GeneralName: "张飞",
 		Success:     true,
@@ -398,9 +398,9 @@ func (h *ZhangFeiHandler) Execute(ctx context.Context, order *cmd_center.Militar
 // ZhaoYunHandler 赵云处理器
 type ZhaoYunHandler struct{}
 
-func (h *ZhaoYunHandler) Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (h *ZhaoYunHandler) Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	// 赵云执行分析可视化
-	return &cmd_center.GeneralReport{
+	return &core.GeneralReport{
 		GeneralID:   "zhaoyun",
 		GeneralName: "赵云",
 		Success:     true,
@@ -415,9 +415,9 @@ func (h *ZhaoYunHandler) Execute(ctx context.Context, order *cmd_center.Military
 // MaChaoHandler 马超处理器
 type MaChaoHandler struct{}
 
-func (h *MaChaoHandler) Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (h *MaChaoHandler) Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	// 马超执行报告撰写
-	return &cmd_center.GeneralReport{
+	return &core.GeneralReport{
 		GeneralID:   "machao",
 		GeneralName: "马超",
 		Success:     true,
@@ -433,9 +433,9 @@ func (h *MaChaoHandler) Execute(ctx context.Context, order *cmd_center.MilitaryO
 // HuangZhongHandler 黄忠处理器
 type HuangZhongHandler struct{}
 
-func (h *HuangZhongHandler) Execute(ctx context.Context, order *cmd_center.MilitaryOrder) (*cmd_center.GeneralReport, error) {
+func (h *HuangZhongHandler) Execute(ctx context.Context, order *core.MilitaryOrder) (*core.GeneralReport, error) {
 	// 黄忠执行质量审核
-	return &cmd_center.GeneralReport{
+	return &core.GeneralReport{
 		GeneralID:   "huangzhong",
 		GeneralName: "黄忠",
 		Success:     true,

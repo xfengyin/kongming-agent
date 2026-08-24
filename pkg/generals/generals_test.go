@@ -5,6 +5,8 @@ package generals
 import (
 	"context"
 	"testing"
+
+	"github.com/zhuge/kongming/pkg/core"
 )
 
 func TestWuHuPoolCount(t *testing.T) {
@@ -47,10 +49,7 @@ func TestWuHuPoolExecute(t *testing.T) {
 	pool := NewWuHuPool()
 	ctx := context.Background()
 
-	order := &MilitaryOrder{
-		ID:   "test-order",
-		Name: "测试任务",
-	}
+	order := core.NewMilitaryOrder("测试任务", "测试任务描述", core.PriorityNormal)
 
 	report, err := pool.Execute(ctx, "guanyu", order)
 	if err != nil {
@@ -58,5 +57,8 @@ func TestWuHuPoolExecute(t *testing.T) {
 	}
 	if !report.Success {
 		t.Errorf("执行应成功")
+	}
+	if report.GeneralID != "guanyu" {
+		t.Errorf("期望战报将领为 guanyu，实际为 %s", report.GeneralID)
 	}
 }

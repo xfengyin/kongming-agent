@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/zhuge/kongming/internal/memory"
 	"github.com/zhuge/kongming/pkg/bagua"
 	"github.com/zhuge/kongming/pkg/cmd_center"
 	"github.com/zhuge/kongming/pkg/courier"
@@ -37,8 +36,8 @@ type ServerConfig struct {
 }
 
 type FeaturesConfig struct {
-	EnableMetrics    bool
-	EnableTracing    bool
+	EnableMetrics     bool
+	EnableTracing     bool
 	EnableObservatory bool
 }
 
@@ -62,10 +61,10 @@ func main() {
 
 func initLogger() {
 	cfg := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.InfoLevel),
-		Development:      false,
-		Encoding:         "json",
-		EncoderConfig:     zapcore.EncoderConfig{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Encoding:    "json",
+		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
 			NameKey:        "logger",
@@ -77,7 +76,7 @@ func initLogger() {
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
 			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:    zapcore.ShortCallerEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
 		},
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
@@ -87,29 +86,29 @@ func initLogger() {
 
 // ZhugeKongming 诸葛孔明
 type ZhugeKongming struct {
-	ctx             context.Context
-	cmdCenter       cmd_center.Commander
-	generalPool     generals.GeneralPool
-	strategyVault   strategy_vault.Vault
-	baguaEngine     *bagua.Engine
-	courierService  *courier.Courier
-	dispatcher      *dispatch.Dispatcher
-	observatory     *observatory.Observatory
-	metricsServer   *http.Server
-	shutdownFuncs   []func() error
+	ctx            context.Context
+	cmdCenter      *cmd_center.Commander
+	generalPool    generals.GeneralPool
+	strategyVault  strategy_vault.Vault
+	baguaEngine    *bagua.Engine
+	courierService *courier.Courier
+	dispatcher     *dispatch.Dispatcher
+	observatory    *observatory.Observatory
+	metricsServer  *http.Server
+	shutdownFuncs  []func() error
 }
 
 // NewZhugeKongming 创建诸葛孔明实例
 func NewZhugeKongming(ctx context.Context) *ZhugeKongming {
 	zk := &ZhugeKongming{
-		ctx:             ctx,
-		cmdCenter:       cmd_center.NewCommander(logger),
-		generalPool:     generals.NewWuHuPool(),
-		strategyVault:   strategy_vault.NewVault(),
-		baguaEngine:     bagua.NewEngine(),
+		ctx:            ctx,
+		cmdCenter:      cmd_center.NewCommander(logger),
+		generalPool:    generals.NewWuHuPool(),
+		strategyVault:  strategy_vault.NewVault(),
+		baguaEngine:    bagua.NewEngine(),
 		courierService: courier.NewCourier(logger),
-		dispatcher:      dispatch.NewDispatcher(logger),
-		observatory:     observatory.NewObservatory(),
+		dispatcher:     dispatch.NewDispatcher(logger),
+		observatory:    observatory.NewObservatory(),
 	}
 
 	zk.shutdownFuncs = append(zk.shutdownFuncs,
