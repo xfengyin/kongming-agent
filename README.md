@@ -53,6 +53,27 @@ Three Kingdoms story that makes every concept memorable:
 
 ## 🚀 Quickstart (real LLM conversation)
 
+### Option A — `go install` (prebuilt CLI)
+
+```bash
+# Install the CLI directly from source (Go 1.21+ required)
+go install github.com/xfengyin/kongming-agent/cmd/kongming@latest
+
+# Configure any OpenAI-compatible provider
+export KONGMING_API_KEY=sk-xxx
+export KONGMING_BASE_URL=https://api.deepseek.com/v1   # optional, default: OpenAI
+export KONGMING_MODEL=deepseek-chat                    # optional, default: gpt-4o-mini
+
+# Start the server (metrics + health on :9090)
+kongming
+```
+
+> 💡 Note: `go install` builds the `cmd/kongming` server binary. To have a
+> one-shot conversation with 诸葛亮 from the command line, clone the repo and
+> use Option B or download a Release artifact (Option C).
+
+### Option B — run the 隆中对 demo from source
+
 ```bash
 git clone https://github.com/xfengyin/kongming-agent.git
 cd kongming-agent
@@ -64,6 +85,21 @@ export KONGMING_MODEL=deepseek-chat                    # optional, default: gpt-
 
 # 2. Talk to 诸葛亮
 go run ./examples/longzhong/main.go
+```
+
+### Option C — download a Release binary
+
+Prebuilt binaries (linux-amd64 / windows-amd64 / darwin-arm64) are attached to
+every [GitHub Release](https://github.com/xfengyin/kongming-agent/releases)
+tagged `v*`. Download and unpack, then run:
+
+```bash
+# linux / macOS
+tar -xzf kongming-linux-amd64.tar.gz
+cd kongming-linux-amd64 && ./kongming
+
+# windows
+# unzip kongming-windows-amd64.zip, then run kongming.exe
 ```
 
 Example interaction:
