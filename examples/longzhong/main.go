@@ -5,10 +5,12 @@
 //   export KONGMING_API_KEY=sk-xxx          # 必填（DeepSeek/OpenAI/通义任一 OpenAI 兼容 Key）
 //   export KONGMING_BASE_URL=https://api.deepseek.com/v1   # 可选，默认 OpenAI
 //   export KONGMING_MODEL=deepseek-chat      # 可选，默认 gpt-4o-mini
-//   go run ./examples/longzhong/main.go
+//   go run ./examples/longzhong/main.go              # 交互模式（一问一答，无历史）
+//   go run ./examples/longzhong/main.go --interactive  # 多轮交互（内存历史）
+//   go run ./examples/longzhong/main.go --ask "问题"   # 一问一答
 //
 // 无 Key 时可用 --mock 离线演示：
-//   go run ./examples/longzhong/main.go --mock
+//   go run ./examples/longzhong/main.go --mock --interactive
 
 package main
 
@@ -29,7 +31,8 @@ import (
 
 func main() {
 	mock := flag.Bool("mock", false, "使用本地 Mock Provider 离线演示（无需 API Key）")
-	oneShot := flag.String("ask", "", "一问一答模式：直接提问并退出（默认交互模式）")
+	oneShot := flag.String("ask", "", "一问一答模式：直接提问并退出")
+	interactive := flag.Bool("interactive", false, "多轮交互模式：stdin 循环对话并保留历史（默认一问一答，无历史）")
 	flag.Parse()
 
 	logger, err := zap.NewDevelopment()
@@ -70,9 +73,18 @@ func main() {
 	fmt.Println()
 
 	if *oneShot != "" {
-		ask(commander, *oneShot)
+		ask(commander, *oneShot, nil)
 		return
 	}
+
+	// 多轮历史（仅内存，不引入依赖）
+	history := llm.NewHistory()
+	mode := "一问一答（无历史）"
+	if *interactive {
+		mode = "多轮交互（内存历史）"
+	}
+	fmt.Printf("💬 模式：%s\n", mode)
+	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -88,16 +100,27 @@ func main() {
 			fmt.Println("亮告退。后会有期！")
 			break
 		}
-		ask(commander, question)
+
+		// 多轮：历史随军令透传给诸葛亮；非多轮则不传
+		if *interactive {
+			ask(commander, question, history)
+		} else {
+			ask(commander, question, nil)
+		}
 		fmt.Println()
 	}
 }
 
-// ask 向军师诸葛亮问计并打印战报
-func ask(commander *cmd_center.Commander, question string) {
+// ask 向军师诸葛亮问计并打印战报。
+// history 非 nil 时启用多轮：把历史挂到军令 Context 透传给诸葛亮，
+// 并在战后把「主公问题 + 军师回复」追加进历史，供下一轮使用。
+func ask(commander *cmd_center.Commander, question string, history *llm.History) {
 	ctx := context.Background()
 	order := cmd_center.NewMilitaryOrder("隆中对", question, cmd_center.PriorityNormal)
 	order.Strategy.Generals = []string{"kongming"} // 点将：诸葛亮
+	if history != nil {
+		order.Context["history"] = history
+	}
 
 	report, err := commander.Dispatch(ctx, order)
 	if err != nil {
@@ -111,10 +134,18 @@ func ask(commander *cmd_center.Commander, question string) {
 			continue
 		}
 		fmt.Printf("🧠 %s：\n", gr.GeneralName)
-		if answer, ok := gr.Data["answer"].(string); ok {
+		var answer string
+		if a, ok := gr.Data["answer"].(string); ok {
+			answer = a
 			fmt.Println(answer)
 		} else {
-			fmt.Println(gr.Message)
+			answer = gr.Message
+			fmt.Println(answer)
+		}
+		// 多轮：把本轮问答追加进历史
+		if history != nil {
+			history.AddUser(question)
+			history.AddAssistant(answer)
 		}
 		if model, ok := gr.Data["model"].(string); ok && model != "" {
 			fmt.Printf("（模型：%s）\n", model)
