@@ -1,213 +1,166 @@
-# Kongming 孔明军师系统
+# 🧭 Kongming (孔明) — A Go Agent Framework with Three Kingdoms Theming
 
 <div align="center">
 
-<p>
-
-<h1>🧭 Kongming (孔明)</h1>
+<h3>运筹帷幄之中，决胜千里之外<br><em>Plan within the tent, win a thousand miles away</em></h3>
 
 <p>
-
-<h3>
-
-运筹帷幄之中，决胜千里之外
-
-</h3>
-
-<p>
-
-<strong>
-
-An Intelligent Multi-Agent Orchestration System
-
-</strong>
-
+<strong>An open-source multi-agent orchestration framework in Go, where agents are generals of Shu Han and the orchestrator is the strategist Zhuge Liang.</strong>
 </p>
 
 <p>
-
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go)](https://github.com/xfengyin/kongming-agent)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
-[![CI/CD](https://img.shields.io/github/actions/workflow/status/xfengyin/kongming-agent/ci.yml?style=flat-square)](https://github.com/xfengyin/kongming-agent/actions)
-
+<a href="https://github.com/xfengyin/kongming-agent"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go Version"></a>
+<a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License"></a>
+<a href="https://github.com/xfengyin/kongming-agent/actions"><img src="https://img.shields.io/github/actions/workflow/status/xfengyin/kongming-agent/ci.yml?style=flat-square" alt="CI"></a>
 </p>
+
+<p><a href="./README.zh-CN.md">🇨🇳 中文版 README</a></p>
 
 </div>
 
-## 📖 简介
+## Why Kongming?
 
-Kongming（孔明）是一个智能多Agent编排系统，灵感来自三国时期蜀汉丞相诸葛亮的智慧。系统通过「军师府」统一调度「五虎将」（子Agent）、「八卦阵」（工作流引擎）、「锦囊库」（技能系统）等核心组件，实现复杂任务的智能分解与协同执行。
+Most agent frameworks are either heavyweight (LangChain/AutoGen-scale) or boring.
+Kongming keeps the orchestration **lightweight and readable**, and wraps it in a
+Three Kingdoms story that makes every concept memorable:
 
-## 🏛️ 核心架构
+| Three Kingdoms concept | What it really is |
+|---|---|
+| 🏯 **军师府 Commander** | Central dispatcher: decompose task → pick generals → collect reports |
+| ⚔️ **五虎将 Generals** | A pool of role-specialized agents (5 Tigers of Shu) with skills & handlers |
+| 🧠 **诸葛亮 Kongming (LLM)** | An LLM-backed strategist agent that answers questions through any OpenAI-compatible API |
+| 🎁 **锦囊库 Strategy Vault** | Pluggable skill/tool registry |
+| 📨 **传令兵 Courier** | Message routing between components |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        军师府 (Commander)                    │
-│              运筹帷幄之中，决胜千里之外                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
-│  │ 五虎将  │  │ 八卦阵  │  │ 锦囊库  │  │ 传令兵  │        │
-│  │ Generals│  │ Bagua   │  │  Vault  │  │ Courier │        │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘        │
-│       └────────────┴─────┬──────┴────────────┘            │
-│                          │                                 │
-│                    ┌─────┴─────┐                           │
-│                    │ 参谋部    │                           │
-│                    │ Dispatch  │                           │
-│                    └─────┬─────┘                           │
-│                          │                                 │
-├──────────────────────────┼──────────────────────────────────┤
-│                    ┌─────┴─────┐                           │
-│                    │ 观测台    │                           │
-│                    │Observatory│                           │
-│                    └───────────┘                           │
-└─────────────────────────────────────────────────────────────┘
-```
+## ✨ Features
 
-## ✨ 核心特性
+**Implemented & tested:**
 
-| 特性 | 描述 |
-|------|------|
-| 🔮 **智能编排** | 多Agent协同，自动选择最优策略 |
-| 🎯 **八卦阵引擎** | 8种阵法模式（天覆/地载/风扬/云垂/龙飞/虎翼/鸟翔/蛇蟠） |
-| 🎁 **锦囊库** | 技能即插即用，热更新支持 |
-| ⚔️ **五虎将** | 专业化Agent池，智能调度 |
-| 📊 **可观测性** | Prometheus + OpenTelemetry 全链路追踪 |
-| 🔄 **容错重试** | 智能重试 + 熔断器机制 |
-| 🚀 **高性能** | 并发执行，优雅退出 |
+- ✅ **Real LLM integration** — driver-based `LLMProvider` interface + OpenAI-compatible adapter (works with DeepSeek / Qwen / OpenAI out of the box)
+- ✅ **隆中对 (Longzhong) demo** — `go run ./examples/longzhong` starts a real conversation with 诸葛亮 using your own API key
+- ✅ **五虎将 agent pool** — 5 role agents with skill-based selection + scoring
+- ✅ **Commander dispatch** — explicit general targeting (点将) or automatic skill-based selection (按技选将)
+- ✅ **Courier message routing** — typed messages with delivery status
+- ✅ **Prometheus metrics** — HTTP/LLM/order observability
+- ✅ **Core unit tests** — courier, generals, commander, LLM provider (httptest, no external network)
 
-## 🚀 快速开始
+**On the roadmap (not yet implemented):**
 
-### 安装
+- 🚧 八卦阵 workflow engine (DAG executor) — types defined, executors not wired
+- 🚧 RAG / vector store — explicitly out of scope for v0.1 (see [boundaries](#boundaries))
+- 🚧 Distributed scheduling / multi-tenant SaaS
+- 🚧 OTel tracing (Prometheus metrics only for now)
+
+## 🚀 Quickstart (real LLM conversation)
 
 ```bash
-# 克隆项目
 git clone https://github.com/xfengyin/kongming-agent.git
 cd kongming-agent
 
-# 下载依赖
-go mod download
+# 1. Configure any OpenAI-compatible provider
+export KONGMING_API_KEY=sk-xxx
+export KONGMING_BASE_URL=https://api.deepseek.com/v1   # optional, default: OpenAI
+export KONGMING_MODEL=deepseek-chat                    # optional, default: gpt-4o-mini
 
-# 构建
-make build
-
-# 运行
-./kongming
+# 2. Talk to 诸葛亮
+go run ./examples/longzhong/main.go
 ```
 
-### 运行示例
+Example interaction:
+
+```
+=== 隆中对 · 孔明军师 ===
+主公> 天下三分，魏蜀吴鼎立，亮以为当如何？
+🧠 诸葛亮：
+天下大势……（real LLM answer）
+```
+
+No API key? Try the offline demo:
 
 ```bash
-# 运行快速开始示例
-go run ./examples/quickstart/main.go
+go run ./examples/longzhong/main.go --mock
 ```
 
-## 📦 项目结构
-
-```
-kongming/
-├── cmd/                          # 应用入口
-│   └── kongming/
-│       └── main.go              # 主程序
-├── configs/                     # 配置文件
-│   └── kongming.yaml            # 主配置
-├── internal/                    # 内部包
-│   └── memory/                  # 记忆系统
-├── pkg/                         # 核心包
-│   ├── bagua/                   # 八卦阵引擎
-│   ├── cmd_center/              # 军师府/参谋部
-│   ├── courier/                 # 传令兵
-│   ├── dispatch/                # 调度器
-│   ├── generals/                # 五虎将池
-│   ├── observatory/             # 观测台
-│   ├── repeater/                # 复读机/熔断器
-│   └── strategy_vault/          # 锦囊库
-├── examples/                    # 示例
-│   ├── quickstart/             # 快速开始
-│   ├── longzhong_strategy/     # 隆中对策略
-│   ├── wuhu_campaign/          # 五虎北伐
-│   └── zhuge_bagua/            # 诸葛八卦
-├── deployments/                 # 部署配置
-│   ├── prometheus/
-│   └── grafana/
-├── .github/workflows/           # CI/CD
-├── Makefile
-└── README.md
-```
-
-## 🛠️ 开发
+One-shot mode:
 
 ```bash
-# 格式化代码
-make fmt
-
-# 运行测试
-make test
-
-# 代码检查
-make lint
-
-# 全部检查
-make ci
-
-# 运行示例
-make run-example
+go run ./examples/longzhong/main.go --ask "如何提升团队执行力？"
 ```
 
-## 📊 观测
-
-启动后访问以下端点：
-
-| 端点 | 描述 |
-|------|------|
-| `:9090/metrics` | Prometheus 指标 |
-| `:9090/health` | 健康检查 |
-| `:9090/ready` | 就绪检查 |
-
-## 🐳 Docker部署
+## 🧪 Run the tests
 
 ```bash
-# 构建镜像
-make docker-build
-
-# 运行容器
-make docker-run
-
-# 使用 docker-compose
-docker-compose up -d
+make test        # go test -v -race -cover ./...
+make build       # build ./cmd/kongming binary
+make run-example # run the structural quickstart demo
 ```
 
-## 📚 相关资源
+## 📦 Project layout
 
-- [设计文档](./docs/)
-- [API 文档](./docs/api.md)
-- [架构说明](./docs/architecture.md)
+```
+kongming-agent/
+├── cmd/kongming/            # server entrypoint (metrics + health)
+├── examples/
+│   ├── longzhong/           # ⭐ real LLM conversation with 诸葛亮
+│   └── quickstart/          # structural demo (no API key needed)
+├── internal/memory/         # three-tier memory store
+├── pkg/
+│   ├── core/                # shared domain types (order/report/strategy)
+│   ├── cmd_center/          # 军师府 Commander dispatcher
+│   ├── generals/            # 五虎将 agent pool + 诸葛亮 LLM strategist
+│   ├── llm/                 # LLMProvider interface + OpenAI-compatible adapter
+│   ├── courier/             # 传令兵 message routing
+│   ├── bagua/               # 八卦阵 workflow engine (roadmap)
+│   ├── dispatch/            # async task dispatcher
+│   ├── observatory/         # Prometheus metrics
+│   ├── repeater/            # retry with backoff
+│   └── strategy_vault/      # 锦囊库 skill registry
+├── configs/                 # YAML configuration
+└── deployments/             # Prometheus/Grafana compose files
+```
 
-## 🤝 贡献
+## 🔌 LLM Provider configuration
 
-欢迎提交 Issue 和 Pull Request！
+Kongming uses a driver-based design — one interface, many providers:
 
-## 📄 许可证
+| Env var | Required | Default | Description |
+|---|---|---|---|
+| `KONGMING_API_KEY` | ✅ | — | API key (any OpenAI-compatible service) |
+| `KONGMING_BASE_URL` | — | `https://api.openai.com/v1` | Base URL, e.g. `https://api.deepseek.com/v1`, `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `KONGMING_MODEL` | — | `gpt-4o-mini` | Model name, e.g. `deepseek-chat`, `qwen-plus` |
+| `KONGMING_PROVIDER` | — | `openai-compatible` | Label used in metrics |
 
-MIT License - 详见 [LICENSE](LICENSE)
+Implement your own provider by satisfying the `llm.Provider` interface:
+
+```go
+type Provider interface {
+    Name() string
+    Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatResponse, error)
+}
+```
+
+## 🛠️ Development
+
+```bash
+make fmt   # format
+make test  # tests
+make ci    # fmt + test + build
+```
+
+## 🚧 Boundaries (what we deliberately do NOT do)
+
+1. **No self-hosted LLM / training / fine-tuning** — model capability is fully delegated to external APIs.
+2. **No RAG engine / vector DB in v0.1** — if needed later, only "read a local file into context" minimal form.
+3. **No visual workflow editor / distributed scheduling / multi-tenant SaaS** — v0.1 is a single-process, single-user local framework.
+4. **Not a LangChain/AutoGen feature-complete clone** — it is a light, readable, Three Kingdoms-themed teaching & rapid-prototyping framework.
+5. **No vendor lock-in** — no default keys, no proxy relay; missing key ⇒ the demo errors out with setup guidance.
+6. **Not production-grade** — research/demo level; harden before production use. No SLA.
+7. **Theming only** — Three Kingdoms naming/narrative is packaging, not a promise of role-play quality.
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE).
 
 ---
 
-<div align="center">
-
-<p>
-
-<strong>
-
-「非淡泊无以明志，非宁静无以致远」
-
-</strong>
-
-<p>
-
-诸葛孔明
-
-</p>
-
-</div>
+<div align="center"><p><strong>「非淡泊无以明志，非宁静无以致远」</strong><br>— Zhuge Liang</p></div>

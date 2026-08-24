@@ -15,7 +15,7 @@ type JinnangType string
 
 const (
 	JinnangSkill  JinnangType = "skill"  // 技能锦囊
-	JinnangTool   JinnangType = "tool"  // 工具锦囊
+	JinnangTool   JinnangType = "tool"   // 工具锦囊
 	JinnangWisdom JinnangType = "wisdom" // 智慧锦囊
 )
 
@@ -23,14 +23,14 @@ const (
 type Jinnang struct {
 	ID          string                 `json:"id" yaml:"id"`
 	Name        string                 `json:"name" yaml:"name"`
-	Type        JinnangType          `json:"type" yaml:"type"`
+	Type        JinnangType            `json:"type" yaml:"type"`
 	Description string                 `json:"description" yaml:"description"`
 	Icon        string                 `json:"icon" yaml:"icon"`
 	Version     string                 `json:"version" yaml:"version"`
 	Tags        []string               `json:"tags" yaml:"tags"`
 	Config      map[string]interface{} `json:"config" yaml:"config"`
-	CreatedAt   time.Time             `json:"created_at" yaml:"created_at"`
-	UpdatedAt   time.Time             `json:"updated_at" yaml:"updated_at"`
+	CreatedAt   time.Time              `json:"created_at" yaml:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at" yaml:"updated_at"`
 }
 
 // JinnangInstance 锦囊实例
