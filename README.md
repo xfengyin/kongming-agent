@@ -158,6 +158,17 @@ go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
 # knowledge dir is stored in the session too; --knowledge overrides it
 ```
 
+Tool calling (v0.6.0+, built-in calculator — safe expression evaluation, no arbitrary code):
+
+```bash
+go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"
+# 🛠️  诸葛亮（工具：calc）：
+# 🧮 计算结果：123*456 = 56088
+
+# non-math questions fall back to the LLM flow automatically
+go run ./examples/longzhong/main.go --tool calc --ask "天下大势如何？"
+```
+
 ## 🧪 Run the tests
 
 ```bash
@@ -181,6 +192,7 @@ kongming-agent/
 │   ├── generals/            # 五虎将 agent pool + 诸葛亮 LLM strategist
 │   ├── llm/                 # LLMProvider interface + OpenAI-compatible adapter
 │   ├── knowledge/           # lightweight RAG: local .md knowledge base (v0.2.0+)
+│   ├── tools/               # safe built-in tools: calculator (v0.6.0+)
 │   ├── courier/             # 传令兵 message routing
 │   ├── bagua/               # 八卦阵 workflow engine (roadmap)
 │   ├── dispatch/            # async task dispatcher
