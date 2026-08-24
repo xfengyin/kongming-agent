@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M8 (v0.7.0 候选)
+
+### Added
+- **配置文件支持**（`pkg/config`）：`Load(path)` 读取 YAML/JSON 配置（按扩展名
+  自动识别），支持 LLM 连接（api_key/base_url/model/provider）、知识库目录
+  （knowledge_dir）、默认工具（tool）；优先级为环境变量 > 配置文件；
+  `Apply()` 仅写入环境变量为空的项（不覆盖已有 env）
+- **demo 接入**（`examples/longzhong`）：新增 `--config <file>`，加载后把配置
+  写入环境变量并合并知识库目录/默认工具（flag 显式指定时优先于配置）；未指定
+  `--config` 时行为不变
+- **示例配置**（`config.example.yaml`）：含全部字段与注释、JSON 等价示例
+- **依赖**：引入 `gopkg.in/yaml.v3`（YAML 解析）
+
+### Tests
+- `pkg/config`：YAML 加载、JSON 加载、环境变量优先、缺失文件、非法格式
+  （YAML/JSON 各一）、空路径、Apply 写入、Apply 不覆盖已有 env（9 用例）
+
 ## [Unreleased] - M7 (v0.6.0 候选)
 
 ### Added

@@ -13,6 +13,7 @@
 //   go run ./examples/longzhong/main.go --interactive --save ./session.json   # 结束/退出时保存会话
 //   go run ./examples/longzhong/main.go --load ./session.json --interactive   # 加载会话继续对话
 //   go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"  # 内置计算器工具（安全求值）
+//   go run ./examples/longzhong/main.go --config config.example.yaml   # 从 YAML/JSON 配置文件加载（环境变量优先）
 //
 // 无 Key 时可用 --mock 离线演示：
 //   go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge --json
@@ -31,6 +32,7 @@ import (
 	"unicode"
 
 	"github.com/zhuge/kongming/pkg/cmd_center"
+	"github.com/zhuge/kongming/pkg/config"
 	"github.com/zhuge/kongming/pkg/generals"
 	"github.com/zhuge/kongming/pkg/knowledge"
 	"github.com/zhuge/kongming/pkg/llm"
@@ -48,7 +50,28 @@ func main() {
 	savePath := flag.String("save", "", "多轮/交互会话保存为 JSON 文件（退出时写入）")
 	loadPath := flag.String("load", "", "从 JSON 文件加载会话（history + knowledge 配置）继续对话")
 	toolName := flag.String("tool", "", "启用内置工具：calc（计算器，识别\"计算 xxx\"表达式并安全求值）；空则不启用")
+	configPath := flag.String("config", "", "YAML/JSON 配置文件路径（环境变量优先；知识库目录/工具可由此设置）")
 	flag.Parse()
+
+	// 0. 配置文件（可选）：环境变量优先，未设环境变量的字段从文件补
+	var cfg *config.Config
+	if *configPath != "" {
+		var err error
+		cfg, err = config.Load(*configPath)
+		if err != nil {
+			fmt.Printf("❌ 配置加载失败: %v\n", err)
+			os.Exit(1)
+		}
+		cfg.Apply() // 仅写入环境变量为空的项
+		printlnHuman(fmt.Sprintf("⚙️  已加载配置：%s", *configPath), *jsonOut)
+		// flag 未显式指定时，用配置里的知识库目录 / 默认工具
+		if *knowledgeDir == "" && cfg.KnowledgeDir != "" {
+			*knowledgeDir = cfg.KnowledgeDir
+		}
+		if *toolName == "" && cfg.Tool != "" {
+			*toolName = cfg.Tool
+		}
+	}
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
