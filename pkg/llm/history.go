@@ -56,3 +56,12 @@ func (h *History) Reset() {
 	defer h.mu.Unlock()
 	h.messages = h.messages[:0]
 }
+
+// NewHistoryFromMessages 用已有消息序列构造历史（会话加载用）
+func NewHistoryFromMessages(messages []Message) *History {
+	h := NewHistory()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.messages = append(h.messages, messages...)
+	return h
+}

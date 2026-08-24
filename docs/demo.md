@@ -134,6 +134,28 @@ go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge
 > 问题），对比不带 --knowledge 时的 2 条——直观证明知识已注入 LLM 上下文。
 > 换一个知识库未收录的话题（如「量子计算」）则不会检索到段落，消息数回到 2。
 
+## 3.6 路径 E：会话保存 / 加载（v0.5.0+）
+
+```bash
+# 场景 A：多轮对话，退出时保存会话
+go run ./examples/longzhong/main.go --mock --interactive --save ./session.json
+# 输入两问后 exit，预期输出末尾：
+# 💾 会话已保存：./session.json（历史 4 条）
+
+# 场景 B：改天加载会话继续对话（历史恢复，消息数接着涨）
+go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
+# 📂 已加载会话：./session.json（历史 4 条）
+# 继续提问后 mock 显示消息数从 4 → 6 → 8 递增，证明历史已恢复
+
+# 场景 C：knowledge 配置随会话保存/恢复
+go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge --save ./kb.json
+go run ./examples/longzhong/main.go --mock --load ./kb.json --ask "空城计怎么用？"
+# 📚 知识库已加载：./knowledge（5 个段落） ← 来自会话配置，无需再传 --knowledge
+```
+
+> 🔍 **演示要点**：保存时看「历史 N 条」；加载后继续提问看消息数从 N 继续递增
+> （而非重置为 2）——直观证明会话持久化。损坏的会话文件会得到明确报错并退出。
+
 ## 4. 服务模式（可选补充）
 
 ```bash

@@ -150,6 +150,16 @@ go run ./examples/longzhong/main.go --mock --json --ask "如何三分天下？"
 # 多轮：--json --interactive 结束时输出 {"type":"session","total_turns":N,"questions":[...],"turns":[...]}
 ```
 
+会话保存/加载（v0.5.0+，多轮会话 + knowledge 配置存为 JSON）：
+
+```bash
+# 退出时保存（多轮）
+go run ./examples/longzhong/main.go --mock --interactive --save ./session.json
+# 改天加载继续对话
+go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
+# knowledge 目录也会随会话保存；显式 --knowledge 可覆盖
+```
+
 ## 🧪 测试与构建
 
 ```bash

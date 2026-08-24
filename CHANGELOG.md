@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M6 (v0.5.0 候选)
+
+### Added
+- **会话保存/加载**（`examples/longzhong`）：新增 `--save <file>` / `--load <file>`，
+  多轮/交互会话以 JSON 持久化（history + knowledge 目录配置），加载后继续对话；
+  会话文件为临时文件 + rename 原子写入，损坏/版本不兼容文件给出明确报错
+- **会话模块**（`pkg/session`）：`New/Save/Load`，版本化 JSON 格式（当前 v1），
+  `llm.History` 新增 `NewHistoryFromMessages` 支持会话历史还原
+
+### Tests
+- `pkg/session`：保存/加载往返、加载不存在文件、损坏 JSON、版本不兼容、
+  nil 会话、时间戳更新、历史还原后继续对话（7 用例）
+- `pkg/llm`：`NewHistoryFromMessages` 还原断言
+
 ## [Unreleased] - M5 (v0.4.0 候选)
 
 ### Added

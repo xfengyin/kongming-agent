@@ -10,6 +10,8 @@
 //   go run ./examples/longzhong/main.go --ask "问题"   # 一问一答
 //   go run ./examples/longzhong/main.go --knowledge ./knowledge  # 轻量 RAG：检索知识库拼入上下文
 //   go run ./examples/longzhong/main.go --json         # 结构化 JSON 输出（便于集成/录屏）
+//   go run ./examples/longzhong/main.go --interactive --save ./session.json   # 结束/退出时保存会话
+//   go run ./examples/longzhong/main.go --load ./session.json --interactive   # 加载会话继续对话
 //
 // 无 Key 时可用 --mock 离线演示：
 //   go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge --json
@@ -30,6 +32,7 @@ import (
 	"github.com/zhuge/kongming/pkg/generals"
 	"github.com/zhuge/kongming/pkg/knowledge"
 	"github.com/zhuge/kongming/pkg/llm"
+	"github.com/zhuge/kongming/pkg/session"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +42,8 @@ func main() {
 	interactive := flag.Bool("interactive", false, "多轮交互模式：stdin 循环对话并保留历史（默认一问一答，无历史）")
 	knowledgeDir := flag.String("knowledge", "", "轻量 RAG：本地知识库目录（读取 .md，检索相关段落拼入上下文）")
 	jsonOut := flag.Bool("json", false, "结构化 JSON 输出（每轮一个对象，多轮结束时输出 session 汇总）")
+	savePath := flag.String("save", "", "多轮/交互会话保存为 JSON 文件（退出时写入）")
+	loadPath := flag.String("load", "", "从 JSON 文件加载会话（history + knowledge 配置）继续对话")
 	flag.Parse()
 
 	logger, err := zap.NewDevelopment()
@@ -73,7 +78,23 @@ func main() {
 	pool := generals.NewWuHuPoolWithLLM(provider)
 	commander := cmd_center.NewCommanderWithPool(logger, pool)
 
-	// 3. 轻量 RAG：加载本地知识库（可选）
+	// 3. 会话加载（可选）：恢复 history 与 knowledge 配置
+	var loadedSession *session.Session
+	if *loadPath != "" {
+		var err error
+		loadedSession, err = session.Load(*loadPath)
+		if err != nil {
+			fmt.Printf("❌ 会话加载失败: %v\n", err)
+			os.Exit(1)
+		}
+		printlnHuman(fmt.Sprintf("📂 已加载会话：%s（历史 %d 条）", *loadPath, len(loadedSession.History)), *jsonOut)
+		// 会话中的 knowledge 配置优先于未显式指定的 --knowledge
+		if loadedSession.KnowledgeDir != "" && *knowledgeDir == "" {
+			*knowledgeDir = loadedSession.KnowledgeDir
+		}
+	}
+
+	// 4. 轻量 RAG：加载本地知识库（可选）
 	var kb *knowledge.Store
 	if *knowledgeDir != "" {
 		var err error
@@ -95,8 +116,11 @@ func main() {
 		return
 	}
 
-	// 多轮历史（仅内存，不引入依赖）
+	// 多轮历史（仅内存，不引入依赖）；--load 时从会话恢复
 	history := llm.NewHistory()
+	if loadedSession != nil && len(loadedSession.History) > 0 {
+		history = llm.NewHistoryFromMessages(loadedSession.History)
+	}
 	mode := "一问一答（无历史）"
 	if *interactive {
 		mode = "多轮交互（内存历史）"
@@ -104,7 +128,7 @@ func main() {
 	printlnHuman(fmt.Sprintf("💬 模式：%s", mode), *jsonOut)
 
 	scanner := bufio.NewScanner(os.Stdin)
-	var session []turnResult // JSON 模式：收集整场会话
+	var turns []turnResult // JSON 模式：收集整场会话
 	for {
 		if !*jsonOut {
 			fmt.Print("主公> ")
@@ -131,14 +155,29 @@ func main() {
 		if r != nil {
 			emitTurn(r, *jsonOut)
 			if *jsonOut {
-				session = append(session, *r)
+				turns = append(turns, *r)
 			}
 		}
 	}
 
+	// --save：退出时把当前会话（history + knowledge 配置）写入 JSON
+	if *savePath != "" {
+		hist := history.Messages()
+		if len(hist) > 0 || *knowledgeDir != "" {
+			ss := session.New(*knowledgeDir, hist)
+			if err := ss.Save(*savePath); err != nil {
+				fmt.Printf("❌ 会话保存失败: %v\n", err)
+			} else {
+				printlnHuman(fmt.Sprintf("💾 会话已保存：%s（历史 %d 条）", *savePath, len(hist)), *jsonOut)
+			}
+		} else {
+			printlnHuman("⚠️  无对话历史，跳过保存（--save 需要至少一轮对话）", *jsonOut)
+		}
+	}
+
 	// JSON 模式：多轮结束输出 session 汇总
-	if *jsonOut && len(session) > 0 {
-		emitSession(session)
+	if *jsonOut && len(turns) > 0 {
+		emitSession(turns)
 	}
 }
 
