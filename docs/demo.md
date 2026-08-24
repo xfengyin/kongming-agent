@@ -104,6 +104,36 @@ $ go run ./examples/longzhong/main.go --mock --interactive
 > 🔍 **演示要点**：注意「本轮收到 N 条消息」随轮次递增（2 → 4 → 6），
 > 直观证明多轮历史通过 messages 数组原样透传给了 Provider。
 
+## 3.5 路径 D：知识库 RAG（v0.2.0+）
+
+```bash
+# 内置三国知识库（knowledge/sanguo.md，5 个典故段落）
+go run ./examples/longzhong/main.go --knowledge ./knowledge \
+  --ask "司马懿兵临城下，如何用空城计退敌？"
+
+# 多轮 + RAG 叠加
+go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge
+```
+
+**预期输出（节选）：**
+
+```
+⚙️  离线演示模式（Mock Provider）
+📚 知识库已加载：./knowledge（5 个段落）
+
+=== 隆中对 · 孔明军师 ===
+
+📚 检索到 1 段相关知识（空城计）
+🧠 诸葛亮：
+[mock] 主公问：司马懿兵临城下，如何用空城计退敌？
+亮答：此乃天机……（本轮收到 3 条消息）  ← 人设 + 知识上下文 + 问题 = 3 条，RAG 注入生效
+```
+
+> 🔍 **演示要点**：① 启动时显示「知识库已加载（N 个段落）」；② 提问命中时显示
+> 「检索到 N 段相关知识（段落标题）」；③ mock 汇报消息数为 3（人设 + 知识 +
+> 问题），对比不带 --knowledge 时的 2 条——直观证明知识已注入 LLM 上下文。
+> 换一个知识库未收录的话题（如「量子计算」）则不会检索到段落，消息数回到 2。
+
 ## 4. 服务模式（可选补充）
 
 ```bash
