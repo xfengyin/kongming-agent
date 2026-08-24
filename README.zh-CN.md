@@ -55,6 +55,27 @@
 
 ## 🚀 快速开始（真实对话）
 
+### 方式 A — `go install` 安装 CLI
+
+```bash
+# 从源码直接安装（需 Go 1.21+）
+go install github.com/xfengyin/kongming-agent/cmd/kongming@latest
+
+# 配置任意 OpenAI 兼容服务
+export KONGMING_API_KEY=sk-xxx
+export KONGMING_BASE_URL=https://api.deepseek.com/v1   # 可选，默认 OpenAI
+export KONGMING_MODEL=deepseek-chat                    # 可选，默认 gpt-4o-mini
+
+# 启动服务（指标 + 健康检查，端口 :9090）
+kongming
+```
+
+> 💡 注意：`go install` 安装的是 `cmd/kongming` 服务端二进制。若想直接在
+> 命令行与诸葛亮一问一答，请用方式 B（源码运行隆中对 demo）或方式 C
+> （下载 Release 产物）。
+
+### 方式 B — 源码运行隆中对 demo
+
 ```bash
 git clone https://github.com/xfengyin/kongming-agent.git
 cd kongming-agent
@@ -66,6 +87,21 @@ export KONGMING_MODEL=deepseek-chat                    # 可选，默认 gpt-4o-
 
 # 2. 与诸葛亮对谈
 go run ./examples/longzhong/main.go
+```
+
+### 方式 C — 下载 Release 二进制
+
+每次打 `v*` tag 的 [GitHub Release](https://github.com/xfengyin/kongming-agent/releases)
+都会附带三平台预编译产物（linux-amd64 / windows-amd64 / darwin-arm64）。
+下载解压后直接运行：
+
+```bash
+# linux / macOS
+tar -xzf kongming-linux-amd64.tar.gz
+cd kongming-linux-amd64 && ./kongming
+
+# windows
+# 解压 kongming-windows-amd64.zip 后运行 kongming.exe
 ```
 
 交互示例：
