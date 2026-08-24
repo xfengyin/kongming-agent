@@ -142,6 +142,14 @@ go run ./examples/longzhong/main.go --knowledge ./knowledge --ask "司马懿兵�
 # 指向你自己的知识目录：--knowledge /path/to/your/markdown/docs
 ```
 
+结构化 JSON 输出（v0.4.0+，每轮一个 JSON 对象，多轮结束输出 session 汇总——可直接 pipe 给 jq/脚本）：
+
+```bash
+go run ./examples/longzhong/main.go --mock --json --ask "如何三分天下？"
+# {"type":"turn","question":"如何三分天下？","general":"诸葛亮","answer":"...","model":"mock-model","success":true,"turns":2}
+# 多轮：--json --interactive 结束时输出 {"type":"session","total_turns":N,"questions":[...],"turns":[...]}
+```
+
 ## 🧪 测试与构建
 
 ```bash
