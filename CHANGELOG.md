@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - M1 (v0.1.0 候选)
+## [Unreleased] - M3 (v0.2.0 候选)
+
+### Added
+- **多轮交互模式**（`examples/longzhong`）：新增 `--interactive`，stdin 循环对话并
+  保留历史；历史为纯内存实现（`pkg/llm.History`，线程安全，零新依赖）
+- **多轮历史透传**（`pkg/llm` / `pkg/generals`）：`KongMingHandler` 支持从
+  `order.Context["history"]` 读取 `*llm.History`，messages 数组原样透传给
+  Provider（不截断、不重排）；战报新增 `turns` 字段便于观察历史长度
+- **推广文档**（`docs/PROMOTION.md`）：三国×AI 卖点、目标人群、Awesome/社区
+  投稿清单、掘金/知乎两篇推广文草稿
+- **演示脚本**（`docs/demo.md`）：离线 mock / 真实 LLM / 多轮交互三条演示路径，
+  含预期输出示例与录屏建议
+
+### Tests
+- `pkg/llm/history_test.go`：History 追加/副本隔离/Reset/并发安全
+- `pkg/generals/llm_test.go`：多轮历史透传断言（recordingProvider 校验
+  system+历史+当前问题 的完整消息序列）
+
+## [v0.1.0] - M1 (v0.1.0 候选)
 
 ### Added
 - **LLM Provider 适配层**（`pkg/llm`）：`LLMProvider` 接口 + OpenAI 兼容适配器

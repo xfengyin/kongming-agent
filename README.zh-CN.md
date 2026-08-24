@@ -125,6 +125,13 @@ go run ./examples/longzhong/main.go --mock
 go run ./examples/longzhong/main.go --ask "如何提升团队执行力？"
 ```
 
+多轮交互（v0.2.0+，内存历史）：
+
+```bash
+go run ./examples/longzhong/main.go --interactive
+# 离线多轮：go run ./examples/longzhong/main.go --mock --interactive
+```
+
 ## 🧪 测试与构建
 
 ```bash
