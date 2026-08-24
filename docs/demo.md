@@ -178,6 +178,31 @@ go run ./examples/longzhong/main.go --mock --tool calc --ask "天下大势如何
 > 仅数字/四则/括号求值，`计算 sqrt(4)`、`计算 123 的平方` 等不会命中计算器，
 > 也不会执行任何代码。
 
+## 3.8 路径 G：配置文件（v0.7.0+）
+
+```bash
+# 1. 复制示例并编辑（LLM 连接 / 知识库目录 / 默认工具）
+cp config.example.yaml my-config.yaml
+# 2. 用配置文件启动（环境变量仍优先）
+go run ./examples/longzhong/main.go --mock --config my-config.yaml
+# 3. 也支持 JSON：--config config.json
+```
+
+**预期输出（配置了 knowledge + tool calc 时）：**
+
+```
+⚙️  已加载配置：my-config.yaml
+📚 知识库已加载：./knowledge（5 个段落）
+主公> 计算 123*456
+🛠️  诸葛亮（工具：calc）：
+🧮 计算结果：123*456 = 56088
+```
+
+> 🔍 **演示要点**：① 启动时显示「已加载配置」；② 配置中的知识库目录与默认工具
+> 自动生效（无需再传 --knowledge / --tool）；③ 优先级为 flag > 环境变量 >
+> 配置文件——可现场演示「export KONGMING_MODEL=xxx 覆盖配置」；④ 配置文件缺失
+> 或格式非法会得到明确报错并退出。
+
 ## 4. 服务模式（可选补充）
 
 ```bash
