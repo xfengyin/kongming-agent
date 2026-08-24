@@ -148,6 +148,16 @@ go run ./examples/longzhong/main.go --mock --json --ask "如何三分天下？"
 # multi-turn: --json --interactive ends with {"type":"session","total_turns":N,"questions":[...],"turns":[...]}
 ```
 
+Session save / load (v0.5.0+, persist multi-turn conversation + knowledge config as JSON):
+
+```bash
+# save on exit (multi-turn)
+go run ./examples/longzhong/main.go --mock --interactive --save ./session.json
+# load and continue another day
+go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
+# knowledge dir is stored in the session too; --knowledge overrides it
+```
+
 ## 🧪 Run the tests
 
 ```bash

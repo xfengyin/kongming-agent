@@ -74,3 +74,18 @@ func TestHistoryConcurrentSafe(t *testing.T) {
 		t.Errorf("期望 100 条，实际 %d", h.Len())
 	}
 }
+
+func TestHistoryFromMessages(t *testing.T) {
+	src := []Message{
+		{Role: RoleUser, Content: "问一"},
+		{Role: RoleAssistant, Content: "答一"},
+	}
+	h := NewHistoryFromMessages(src)
+	if h.Len() != 2 {
+		t.Fatalf("期望 2 条消息，实际 %d", h.Len())
+	}
+	msgs := h.Messages()
+	if msgs[0].Content != "问一" || msgs[1].Role != RoleAssistant {
+		t.Errorf("消息还原错误: %+v", msgs)
+	}
+}
