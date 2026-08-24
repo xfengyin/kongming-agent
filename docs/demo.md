@@ -156,6 +156,28 @@ go run ./examples/longzhong/main.go --mock --load ./kb.json --ask "空城计怎�
 > 🔍 **演示要点**：保存时看「历史 N 条」；加载后继续提问看消息数从 N 继续递增
 > （而非重置为 2）——直观证明会话持久化。损坏的会话文件会得到明确报错并退出。
 
+## 3.7 路径 F：工具调用（v0.6.0+，内置计算器）
+
+```bash
+# 中文前缀 / 裸表达式 / 语气词都能识别
+go run ./examples/longzhong/main.go --mock --tool calc --ask "计算 123*456"
+go run ./examples/longzhong/main.go --mock --tool calc --ask "(2+3)*4 等于多少？"
+# 非计算问题自动回落 LLM
+go run ./examples/longzhong/main.go --mock --tool calc --ask "天下大势如何？"
+```
+
+**预期输出（命中时）：**
+
+```
+🛠️  诸葛亮（工具：calc）：
+🧮 计算结果：123*456 = 56088
+```
+
+> 🔍 **演示要点**：① 计算类提问显示「工具：calc」与算式结果，且不经过 LLM
+> （速度极快）；② 非计算提问走原 LLM 流程（显示「🧠 诸葛亮」）；③ 安全边界——
+> 仅数字/四则/括号求值，`计算 sqrt(4)`、`计算 123 的平方` 等不会命中计算器，
+> 也不会执行任何代码。
+
 ## 4. 服务模式（可选补充）
 
 ```bash

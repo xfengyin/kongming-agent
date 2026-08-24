@@ -160,6 +160,17 @@ go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
 # knowledge 目录也会随会话保存；显式 --knowledge 可覆盖
 ```
 
+工具调用（v0.6.0+，内置计算器——安全表达式求值，不执行任意代码）：
+
+```bash
+go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"
+# 🛠️  诸葛亮（工具：calc）：
+# 🧮 计算结果：123*456 = 56088
+
+# 非计算问题自动回落 LLM 流程
+go run ./examples/longzhong/main.go --tool calc --ask "天下大势如何？"
+```
+
 ## 🧪 测试与构建
 
 ```bash
@@ -183,6 +194,7 @@ kongming-agent/
 │   ├── generals/            # 五虎将池 + 诸葛亮 LLM 将领
 │   ├── llm/                 # LLMProvider 接口 + OpenAI 兼容适配
 │   ├── knowledge/           # 轻量 RAG：本地 .md 知识库（v0.2.0+）
+│   ├── tools/               # 内置安全工具：计算器（v0.6.0+）
 │   ├── courier/             # 传令兵消息路由
 │   ├── bagua/               # 八卦阵工作流引擎（roadmap）
 │   ├── dispatch/            # 异步任务调度

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M7 (v0.6.0 候选)
+
+### Added
+- **工具调用：内置计算器**（`pkg/tools`）：`Evaluate` 安全表达式求值——递归下降
+  解析，仅支持数字/四则（+ - * /）/括号/小数点/一元正负号，绝不 eval 任意代码；
+  除零、非法字符、空表达式返回明确错误；`Calculator` 实现工具接口（Name=calc）
+- **demo 接入**（`examples/longzhong`）：新增 `--tool calc`，识别「计算/算一下/
+  帮我算/calc/calculate + 表达式」或裸表达式（含"…等于多少？"等语气词），直接
+  求值并作为工具结果返回；非计算问题或求值失败（如除零）自动回落 LLM 流程；
+  战报新增 `tool` 字段（JSON 输出可见）
+
+### Tests
+- `pkg/tools`：基础四则/优先级/括号/一元符号/小数/嵌套括号/空白容忍、错误
+  （空/非法/除零/括号不匹配/连续运算符）、工具接口、危险表达式拒绝
+  （os.Exit/`ls`/exec 等全部拒绝）
+- `examples/longzhong`：`extractCalcExpr` 提取用例（前缀/裸表达式/语气词/
+  非计算不匹配/含非法字符不匹配）
+
 ## [Unreleased] - M6 (v0.5.0 候选)
 
 ### Added

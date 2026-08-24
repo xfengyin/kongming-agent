@@ -12,6 +12,7 @@
 //   go run ./examples/longzhong/main.go --json         # 结构化 JSON 输出（便于集成/录屏）
 //   go run ./examples/longzhong/main.go --interactive --save ./session.json   # 结束/退出时保存会话
 //   go run ./examples/longzhong/main.go --load ./session.json --interactive   # 加载会话继续对话
+//   go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"  # 内置计算器工具（安全求值）
 //
 // 无 Key 时可用 --mock 离线演示：
 //   go run ./examples/longzhong/main.go --mock --interactive --knowledge ./knowledge --json
@@ -27,12 +28,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/zhuge/kongming/pkg/cmd_center"
 	"github.com/zhuge/kongming/pkg/generals"
 	"github.com/zhuge/kongming/pkg/knowledge"
 	"github.com/zhuge/kongming/pkg/llm"
 	"github.com/zhuge/kongming/pkg/session"
+	"github.com/zhuge/kongming/pkg/tools"
 	"go.uber.org/zap"
 )
 
@@ -44,6 +47,7 @@ func main() {
 	jsonOut := flag.Bool("json", false, "结构化 JSON 输出（每轮一个对象，多轮结束时输出 session 汇总）")
 	savePath := flag.String("save", "", "多轮/交互会话保存为 JSON 文件（退出时写入）")
 	loadPath := flag.String("load", "", "从 JSON 文件加载会话（history + knowledge 配置）继续对话")
+	toolName := flag.String("tool", "", "启用内置工具：calc（计算器，识别\"计算 xxx\"表达式并安全求值）；空则不启用")
 	flag.Parse()
 
 	logger, err := zap.NewDevelopment()
@@ -111,7 +115,7 @@ func main() {
 	printlnHuman("主公有何要事相询？（输入 exit 退出）", *jsonOut)
 
 	if *oneShot != "" {
-		r := ask(commander, *oneShot, nil, kb)
+		r := ask(commander, *oneShot, nil, kb, *toolName == "calc")
 		emitTurn(r, *jsonOut)
 		return
 	}
@@ -148,9 +152,9 @@ func main() {
 		// 多轮：历史随军令透传给诸葛亮；非多轮则不传
 		var r *turnResult
 		if *interactive {
-			r = ask(commander, question, history, kb)
+			r = ask(commander, question, history, kb, *toolName == "calc")
 		} else {
-			r = ask(commander, question, nil, kb)
+			r = ask(commander, question, nil, kb, *toolName == "calc")
 		}
 		if r != nil {
 			emitTurn(r, *jsonOut)
@@ -191,6 +195,7 @@ type turnResult struct {
 	Success   bool     `json:"success"`                       // 是否成功
 	Turns     int      `json:"turns"`                         // 本轮发给 LLM 的总消息条数（含人设/知识/历史）
 	Knowledge []string `json:"retrieved_knowledge,omitempty"` // RAG 检索到的段落标题
+	Tool      string   `json:"tool,omitempty"`                // 命中的工具名（如 calc）
 	Error     string   `json:"error,omitempty"`               // 失败原因
 }
 
@@ -206,7 +211,7 @@ type sessionResult struct {
 // history 非 nil 时启用多轮：把历史挂到军令 Context 透传给诸葛亮，
 // 并在战后把「主公问题 + 军师回复」追加进历史，供下一轮使用。
 // kb 非 nil 时启用轻量 RAG：先检索相关段落拼入军令 Context 作为参考。
-func ask(commander *cmd_center.Commander, question string, history *llm.History, kb *knowledge.Store) *turnResult {
+func ask(commander *cmd_center.Commander, question string, history *llm.History, kb *knowledge.Store, toolCalc bool) *turnResult {
 	ctx := context.Background()
 	order := cmd_center.NewMilitaryOrder("隆中对", question, cmd_center.PriorityNormal)
 	order.Strategy.Generals = []string{"kongming"} // 点将：诸葛亮
@@ -218,6 +223,26 @@ func ask(commander *cmd_center.Commander, question string, history *llm.History,
 		Type:     "turn",
 		Question: question,
 		General:  "诸葛亮",
+	}
+
+	// 工具调用：--tool calc 识别计算表达式并直接求值（不经过 LLM）
+	if toolCalc {
+		if expr, ok := extractCalcExpr(question); ok {
+			val, err := tools.Evaluate(expr)
+			if err == nil {
+				res.Success = true
+				res.Tool = "calc"
+				res.Answer = fmt.Sprintf("🧮 计算结果：%s = %s", expr, formatNumber(val))
+				if history != nil {
+					history.AddUser(question)
+					history.AddAssistant(res.Answer)
+				}
+				return res
+			}
+			// 表达式存在但求值失败（如除零）：交给 LLM 解释
+			res.Tool = "calc"
+			order.Context["calc_error"] = err.Error()
+		}
 	}
 
 	// 轻量 RAG：检索相关段落
@@ -286,7 +311,11 @@ func emitTurn(r *turnResult, jsonOut bool) {
 		fmt.Printf("❌ %s：%s\n", r.General, r.Error)
 		return
 	}
-	fmt.Printf("🧠 %s：\n", r.General)
+	if r.Tool != "" {
+		fmt.Printf("🛠️  %s（工具：%s）：\n", r.General, r.Tool)
+	} else {
+		fmt.Printf("🧠 %s：\n", r.General)
+	}
 	fmt.Println(r.Answer)
 	if len(r.Knowledge) > 0 {
 		fmt.Printf("📚 参考知识：%s\n", strings.Join(r.Knowledge, "、"))
@@ -336,6 +365,65 @@ func formatKnowledge(paras []knowledge.Paragraph) string {
 		sb.WriteString(p.Content)
 	}
 	return sb.String()
+}
+
+// extractCalcExpr 从提问中提取计算表达式。
+// 支持中文前缀（计算/算一下/帮我算）、英文前缀（calc/calculate），
+// 以及裸表达式（如 "123*456"）。返回表达式与是否匹配。
+func extractCalcExpr(question string) (string, bool) {
+	q := strings.TrimSpace(question)
+	if q == "" {
+		return "", false
+	}
+	// 去尾部提问语气词（循环剥到稳定为止，兼容"…等于多少？"这类叠加）
+	for changed := true; changed; {
+		changed = false
+		for _, suf := range []string{"等于多少", "是多少", "等于几", "的结果", "等于", "= ?", "=?", "？", "?"} {
+			if strings.HasSuffix(q, suf) {
+				q = strings.TrimSpace(strings.TrimSuffix(q, suf))
+				changed = true
+			}
+		}
+	}
+	// 去前缀
+	for _, pre := range []string{"计算", "算一下", "帮我算", "帮我计算", "请问计算", "calculate", "calc", "compute"} {
+		if strings.HasPrefix(strings.ToLower(q), pre) {
+			q = strings.TrimSpace(q[len(pre):])
+			break
+		}
+	}
+	// 去可能残留的冒号/等号
+	q = strings.Trim(q, "：:＝=，, ")
+	if q == "" {
+		return "", false
+	}
+	// 必须是纯表达式字符：数字、四则、括号、小数点、空白
+	for _, r := range q {
+		if unicode.IsDigit(r) || strings.ContainsRune("+-*/(). ", r) {
+			continue
+		}
+		return "", false
+	}
+	// 至少要有一个数字
+	hasDigit := false
+	for _, r := range q {
+		if unicode.IsDigit(r) {
+			hasDigit = true
+			break
+		}
+	}
+	if !hasDigit {
+		return "", false
+	}
+	return q, true
+}
+
+// formatNumber 数字格式化：整数不带小数点
+func formatNumber(v float64) string {
+	if v == float64(int64(v)) {
+		return fmt.Sprintf("%d", int64(v))
+	}
+	return fmt.Sprintf("%g", v)
 }
 
 // llmEnvModel 读取当前模型配置（仅用于提示）
