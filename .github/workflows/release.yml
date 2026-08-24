@@ -66,8 +66,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${BINARY_NAME}-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/${BINARY_NAME}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.ext }}
+          name: ${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.ext }}
           if-no-files-found: error
 
   release:
