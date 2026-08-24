@@ -24,14 +24,14 @@ const (
 
 // Message 消息
 type Message struct {
-	ID        string                 `json:"id"`
-	Type      MessageType           `json:"type"`
-	From      string                 `json:"from"`
-	To        string                 `json:"to"`
-	Payload   interface{}            `json:"payload"`
-	Timestamp time.Time             `json:"timestamp"`
-	TTL       time.Duration         `json:"ttl"`
-	Headers   map[string]string     `json:"headers"`
+	ID        string            `json:"id"`
+	Type      MessageType       `json:"type"`
+	From      string            `json:"from"`
+	To        string            `json:"to"`
+	Payload   interface{}       `json:"payload"`
+	Timestamp time.Time         `json:"timestamp"`
+	TTL       time.Duration     `json:"ttl"`
+	Headers   map[string]string `json:"headers"`
 }
 
 // DeliveryStatus 投递状态
@@ -46,13 +46,15 @@ const (
 
 // Courier 传令兵服务
 type Courier struct {
-	logger    *zap.Logger
-	inbox     chan *Message
-	outbox    chan *Message
-	handlers  map[MessageType][]MessageHandler
-	delivery  map[string]*DeliveryStatus
-	mu        sync.RWMutex
-	running   bool
+	logger   *zap.Logger
+	inbox    chan *Message
+	outbox   chan *Message
+	handlers map[MessageType][]MessageHandler
+	delivery map[string]*DeliveryStatus
+	mu       sync.RWMutex
+	done     chan struct{}
+	once     sync.Once
+	wg       sync.WaitGroup
 }
 
 // MessageHandler 消息处理器
@@ -75,6 +77,7 @@ func NewCourier(logger *zap.Logger) *Courier {
 		outbox:   make(chan *Message, 1000),
 		handlers: make(map[MessageType][]MessageHandler),
 		delivery: make(map[string]*DeliveryStatus),
+		done:     make(chan struct{}),
 	}
 }
 
@@ -101,12 +104,21 @@ func (c *Courier) Send(ctx context.Context, msg *Message) error {
 		zap.String("type", string(msg.Type)),
 	)
 
+	// 已停止则直接拒绝
+	select {
+	case <-c.done:
+		return fmt.Errorf("传令兵服务已停止")
+	default:
+	}
+
 	// 放入投递队列
 	select {
 	case c.outbox <- msg:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-c.done:
+		return fmt.Errorf("传令兵服务已停止")
 	default:
 		return fmt.Errorf("投递队列已满")
 	}
@@ -114,7 +126,7 @@ func (c *Courier) Send(ctx context.Context, msg *Message) error {
 
 // Start 启动服务
 func (c *Courier) Start(ctx context.Context) {
-	c.running = true
+	c.wg.Add(2)
 	go c.processOutbox(ctx)
 	go c.processInbox(ctx)
 	c.logger.Info("传令兵服务启动")
@@ -122,56 +134,88 @@ func (c *Courier) Start(ctx context.Context) {
 
 // Stop 停止服务
 func (c *Courier) Stop() {
-	c.running = false
-	close(c.outbox)
-	close(c.inbox)
-	c.logger.Info("传令兵服务停止")
+	c.once.Do(func() {
+		close(c.done)
+		c.wg.Wait()
+		c.logger.Info("传令兵服务停止")
+	})
 }
 
 // processOutbox 处理发送队列
 func (c *Courier) processOutbox(ctx context.Context) {
-	for msg := range c.outbox {
-		// 模拟网络投递
-		go func(m *Message) {
-			// 实际实现中，这里会通过网络发送消息
-			c.mu.Lock()
-			status := StatusPending
-			c.delivery[m.ID] = &status
-			c.mu.Unlock()
-
-			// 模拟投递
-			select {
-			case <-ctx.Done():
-				c.mu.Lock()
-				s := StatusTimeout
-				c.delivery[m.ID] = &s
-				c.mu.Unlock()
-				return
-			case <-time.After(100 * time.Millisecond):
-				c.mu.Lock()
-				s := StatusDelivered
-				c.delivery[m.ID] = &s
-				c.mu.Unlock()
-				c.inbox <- m
+	defer c.wg.Done()
+	for {
+		select {
+		case msg := <-c.outbox:
+			c.deliver(ctx, msg)
+		case <-c.done:
+			// 尽力清空剩余消息
+			for {
+				select {
+				case msg := <-c.outbox:
+					c.deliver(ctx, msg)
+				default:
+					return
+				}
 			}
-		}(msg)
+		}
+	}
+}
+
+// deliver 模拟投递并转入收件箱
+func (c *Courier) deliver(ctx context.Context, m *Message) {
+	c.mu.Lock()
+	status := StatusPending
+	c.delivery[m.ID] = &status
+	c.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		c.setStatus(m.ID, StatusTimeout)
+	case <-time.After(10 * time.Millisecond):
+		c.setStatus(m.ID, StatusDelivered)
+		select {
+		case c.inbox <- m:
+		case <-c.done:
+		case <-ctx.Done():
+		}
+	}
+}
+
+// setStatus 更新投递状态（并发安全）
+func (c *Courier) setStatus(msgID string, s DeliveryStatus) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if st, ok := c.delivery[msgID]; ok {
+		*st = s
 	}
 }
 
 // processInbox 处理接收队列
 func (c *Courier) processInbox(ctx context.Context) {
-	for msg := range c.inbox {
-		c.mu.RLock()
-		handlers := c.handlers[msg.Type]
-		c.mu.RUnlock()
+	defer c.wg.Done()
+	for {
+		select {
+		case msg := <-c.inbox:
+			c.handle(ctx, msg)
+		case <-c.done:
+			return
+		}
+	}
+}
 
-		for _, handler := range handlers {
-			if err := handler.Handle(ctx, msg); err != nil {
-				c.logger.Error("消息处理失败",
-					zap.String("msg_id", msg.ID),
-					zap.Error(err),
-				)
-			}
+// handle 分发消息给注册的处理器
+func (c *Courier) handle(ctx context.Context, msg *Message) {
+	c.mu.RLock()
+	handlers := c.handlers[msg.Type]
+	c.mu.RUnlock()
+
+	for _, handler := range handlers {
+		if err := handler.Handle(ctx, msg); err != nil {
+			c.logger.Error("消息处理失败",
+				zap.String("msg_id", msg.ID),
+				zap.Error(err),
+			)
 		}
 	}
 }

@@ -5,7 +5,6 @@ package observatory
 import (
 	"context"
 	"testing"
-	"time"
 )
 
 func TestObservatoryStart(t *testing.T) {
@@ -19,7 +18,7 @@ func TestObservatoryStart(t *testing.T) {
 }
 
 func TestRecordHTTPRequest(t *testing.T) {
-	RecordHTTPRequest("GET", "/api/test", 200, 100*time.Millisecond)
+	RecordHTTPRequest("GET", "/api/test", 200, 0.1)
 }
 
 func TestSetActiveOrders(t *testing.T) {
@@ -28,5 +27,8 @@ func TestSetActiveOrders(t *testing.T) {
 
 func TestRecordTaskProcessed(t *testing.T) {
 	RecordTaskProcessed("success")
-	RecordTaskProcessed("failed")
+}
+
+func TestRecordLLMCall(t *testing.T) {
+	RecordLLMCall("mock", "success", 0.01)
 }

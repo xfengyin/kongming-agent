@@ -67,6 +67,9 @@ jobs:
       - name: Build
         run: go build -ldflags="-s -w" -o kongming ./cmd/kongming
 
+      - name: Build examples
+        run: go build ./examples/...
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

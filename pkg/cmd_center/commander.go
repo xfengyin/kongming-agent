@@ -6,31 +6,37 @@ package cmd_center
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/zhuge/kongming/pkg/courier"
 	"github.com/zhuge/kongming/pkg/generals"
 	"github.com/zhuge/kongming/pkg/strategy_vault"
-	"github.com/zhuge/kongming/pkg/courier"
 	"go.uber.org/zap"
 )
 
 // Commander 军师 - 核心调度器
 type Commander struct {
-	logger       *zap.Logger
-	generalPool  generals.GeneralPool
+	logger        *zap.Logger
+	generalPool   generals.GeneralPool
 	strategyVault strategy_vault.Vault
-	courier     *courier.Courier
-	orders      map[string]*MilitaryOrder
-	reports     map[string]*BattleReport
-	mu          sync.RWMutex
+	courier       *courier.Courier
+	orders        map[string]*MilitaryOrder
+	reports       map[string]*BattleReport
+	mu            sync.RWMutex
 }
 
 // NewCommander 创建军师
 func NewCommander(logger *zap.Logger) *Commander {
+	return NewCommanderWithPool(logger, generals.NewWuHuPool())
+}
+
+// NewCommanderWithPool 使用自定义将领池创建军师（如接入 LLM 的军师诸葛亮）
+func NewCommanderWithPool(logger *zap.Logger, pool generals.GeneralPool) *Commander {
 	return &Commander{
 		logger:        logger,
-		generalPool:   generals.NewWuHuPool(),
+		generalPool:   pool,
 		strategyVault: strategy_vault.NewVault(),
 		orders:        make(map[string]*MilitaryOrder),
 		reports:       make(map[string]*BattleReport),
@@ -58,25 +64,37 @@ func (c *Commander) Dispatch(ctx context.Context, order *MilitaryOrder) (*Battle
 	order.State = StateExecuting
 
 	report := &BattleReport{
-		OrderID:     order.ID,
-		StartedAt:   time.Now(),
-		Generals:    make([]GeneralReport, 0),
+		OrderID:   order.ID,
+		StartedAt: time.Now(),
+		Generals:  make([]GeneralReport, 0),
 	}
 
 	// 根据战略执行
-	for _, tactic := range strategy.Tactics {
-		// 选择将领
-		general, err := c.selectGeneral(tactic)
+	// 优先执行战略中点名的将领（strategy.Generals），否则按战术步骤选择将领
+	targetGenerals := strategy.Generals
+	if len(targetGenerals) == 0 {
+		for _, tactic := range strategy.Tactics {
+			g, err := c.selectGeneral(tactic)
+			if err != nil {
+				c.logger.Warn("无合适将领", zap.String("tactic", tactic.Name))
+				continue
+			}
+			targetGenerals = append(targetGenerals, g.ID)
+		}
+	}
+
+	for _, gid := range targetGenerals {
+		general, err := c.generalPool.Get(gid)
 		if err != nil {
-			c.logger.Warn("无合适将领", zap.String("tactic", tactic.Name))
+			c.logger.Warn("将领不存在", zap.String("general_id", gid))
 			continue
 		}
 
 		// 派遣执行
 		tacticalOrder := &MilitaryOrder{
-			ID:          fmt.Sprintf("%s_%s", order.ID, tactic.Name),
-			Name:        tactic.Name,
-			Description: tactic.Description,
+			ID:          fmt.Sprintf("%s_%s", order.ID, general.Name),
+			Name:        general.Name,
+			Description: order.Description,
 			Context:     order.Context,
 		}
 
@@ -107,7 +125,10 @@ func (c *Commander) Dispatch(ctx context.Context, order *MilitaryOrder) (*Battle
 func (c *Commander) PlanStrategy(ctx context.Context, order *MilitaryOrder) (*Strategy, error) {
 	// 根据任务类型制定战略
 	strategy := &Strategy{
+		Type:       order.Strategy.Type,
 		Objectives: order.Strategy.Objectives,
+		Generals:   order.Strategy.Generals, // 保留点名将领
+		JinnangIDs: order.Strategy.JinnangIDs,
 		Tactics:    make([]Tactic, 0),
 		BaguaMode:  "dizai",
 	}
@@ -117,22 +138,49 @@ func (c *Commander) PlanStrategy(ctx context.Context, order *MilitaryOrder) (*St
 	case PriorityUrgent:
 		strategy.BaguaMode = "fengyang" // 风扬阵 - 快速响应
 	case PriorityHigh:
-		strategy.BaguaMode = "tiangai"  // 天覆阵 - 并行执行
+		strategy.BaguaMode = "tiangai" // 天覆阵 - 并行执行
 	default:
-		strategy.BaguaMode = "dizai"    // 地载阵 - 顺序执行
+		strategy.BaguaMode = "dizai" // 地载阵 - 顺序执行
 	}
 
-	// 添加战术步骤
+	// 添加战术步骤：按目标关键词匹配合适将领技能
 	for i, obj := range order.Strategy.Objectives {
 		strategy.Tactics = append(strategy.Tactics, Tactic{
 			Order:       i + 1,
 			Name:        obj,
 			Description: fmt.Sprintf("执行目标: %s", obj),
-			Action:      "execute",
+			Action:      skillForObjective(obj),
 		})
 	}
 
 	return strategy, nil
+}
+
+// skillForObjective 按目标文本关键词映射将领技能
+func skillForObjective(obj string) string {
+	switch {
+	case containsAny(obj, "情报", "搜集", "收集", "调研", "竞品", "资料", "信息"):
+		return "data_collection"
+	case containsAny(obj, "清洗", "结构化", "数据处理", "工程", "ETL"):
+		return "data_processing"
+	case containsAny(obj, "分析", "可视化", "图表", "洞察"):
+		return "data_analysis"
+	case containsAny(obj, "报告", "撰写", "文案", "文档", "总结"):
+		return "writing"
+	case containsAny(obj, "审核", "质检", "校验", "验收", "把关"):
+		return "quality_check"
+	default:
+		return "llm" // 无法匹配时交由军师诸葛亮（LLM）
+	}
+}
+
+func containsAny(s string, subs ...string) bool {
+	for _, sub := range subs {
+		if strings.Contains(s, sub) {
+			return true
+		}
+	}
+	return false
 }
 
 // Review 审核战报
@@ -180,20 +228,14 @@ func (c *Commander) ListOrders(state TaskState) []*MilitaryOrder {
 
 func (c *Commander) selectGeneral(tactic Tactic) (*generals.General, error) {
 	// 根据战术类型选择将领
-	return c.generalPool.SelectBest(tactic.Action)
-}
-
-func (s TaskPriority) String() string {
-	switch s {
-	case PriorityLow:
-		return "低"
-	case PriorityNormal:
-		return "普通"
-	case PriorityHigh:
-		return "高"
-	case PriorityUrgent:
-		return "紧急"
-	default:
-		return "未知"
+	g, err := c.generalPool.SelectBest(tactic.Action)
+	if err == nil {
+		return g, nil
 	}
+	// 兜底：选择任意待命将领
+	idle := c.generalPool.List(generals.GeneralFilter{State: generals.GeneralIdle})
+	if len(idle) == 0 {
+		return nil, err
+	}
+	return idle[0], nil
 }

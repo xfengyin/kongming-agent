@@ -1,4 +1,9 @@
-# Kongming 孔明军师系统配置
+# Kongming 孔明军师系统配置示例
+# 复制此文件为 kongming.yaml 并修改配置
+#
+# LLM 配置：以环境变量为准（KONGMING_API_KEY / KONGMING_BASE_URL /
+# KONGMING_MODEL），见 README「LLM Provider 配置」一节。
+
 version: "1.0"
 
 # 服务配置
@@ -12,16 +17,18 @@ server:
 # 功能开关
 features:
   enable_metrics: true
-  enable_tracing: true
+  enable_tracing: false   # 链路追踪为 roadmap，当前仅指标
   enable_observatory: true
 
-# 观测配置
+# 观测配置（Prometheus 指标）
 observatory:
   metrics_port: 9090
-  tracing:
-    enabled: true
-    endpoint: "http://localhost:14268/api/traces"
-    sampling_rate: 1.0
+
+# LLM 配置（环境变量优先；此处为文档性示例）
+llm:
+  base_url: "https://api.openai.com/v1"   # DeepSeek: https://api.deepseek.com/v1
+  model: "gpt-4o-mini"                    # DeepSeek: deepseek-chat
+  api_key_env: "KONGMING_API_KEY"
 
 # 军师配置
 commander:
@@ -38,7 +45,7 @@ vault:
   dir: "./strategies"
   auto_reload: true
 
-# 八卦阵配置
+# 八卦阵配置（roadmap：引擎执行器未接线）
 bagua:
   default_mode: "dizai"
   max_parallel_nodes: 10
@@ -55,8 +62,3 @@ repeater:
   initial_backoff: 100ms
   max_backoff: 30s
   backoff_factor: 2.0
-
-# 熔断器配置
-circuit_breaker:
-  threshold: 5
-  timeout: 60s

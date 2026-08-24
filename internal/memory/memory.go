@@ -21,22 +21,22 @@ const (
 
 // MemoryEntry 记忆条目
 type MemoryEntry struct {
-	ID          string                 `json:"id"`
-	Type        MemoryType            `json:"type"`
-	Key         string                 `json:"key"`
-	Content     interface{}            `json:"content"`
-	Tags        []string               `json:"tags"`
-	Weight      float64               `json:"weight"` // 重要性权重
-	AccessCount int                   `json:"access_count"`
-	CreatedAt   time.Time             `json:"created_at"`
-	UpdatedAt   time.Time             `json:"updated_at"`
-	ExpiresAt   *time.Time            `json:"expires_at,omitempty"`
+	ID          string      `json:"id"`
+	Type        MemoryType  `json:"type"`
+	Key         string      `json:"key"`
+	Content     interface{} `json:"content"`
+	Tags        []string    `json:"tags"`
+	Weight      float64     `json:"weight"` // 重要性权重
+	AccessCount int         `json:"access_count"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	ExpiresAt   *time.Time  `json:"expires_at,omitempty"`
 }
 
 // SearchResult 搜索结果
 type SearchResult struct {
 	Entry *MemoryEntry `json:"entry"`
-	Score float64     `json:"score"` // 相关性评分
+	Score float64      `json:"score"` // 相关性评分
 }
 
 // Memory 记忆系统接口
@@ -62,10 +62,10 @@ type Memory interface {
 
 // ZhugeMemory 诸葛记忆实现
 type ZhugeMemory struct {
-	mu          sync.RWMutex
-	shortTerm   map[string]*MemoryEntry
-	midTerm     map[string]*MemoryEntry
-	longTerm    map[string]*MemoryEntry
+	mu        sync.RWMutex
+	shortTerm map[string]*MemoryEntry
+	midTerm   map[string]*MemoryEntry
+	longTerm  map[string]*MemoryEntry
 
 	// 配置
 	shortTermTTL time.Duration

@@ -24,10 +24,10 @@ type RetryPolicy struct {
 // DefaultRetryPolicy 默认重试策略
 var DefaultRetryPolicy = &RetryPolicy{
 	MaxAttempts:    3,
-	InitialBackoff:  100 * time.Millisecond,
-	MaxBackoff:      30 * time.Second,
-	BackoffFactor:   2.0,
-	Jitter:          true,
+	InitialBackoff: 100 * time.Millisecond,
+	MaxBackoff:     30 * time.Second,
+	BackoffFactor:  2.0,
+	Jitter:         true,
 }
 
 // TaskFunc 任务函数
@@ -233,6 +233,6 @@ func (cb *CircuitBreaker) GetState() CircuitState {
 // addJitter 添加抖动
 func addJitter(d time.Duration) time.Duration {
 	// 50%的随机抖动
-	jitter := time.Duration(float64(d) * 0.5 * (float64(time.Now().UnixNano()%100)/100.0))
+	jitter := time.Duration(float64(d) * 0.5 * (float64(time.Now().UnixNano()%100) / 100.0))
 	return d + jitter
 }

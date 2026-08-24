@@ -19,7 +19,7 @@ const (
 	Tiangai   BaguaMode = "tiangai"   // 天覆阵 - 并行全攻
 	Dizai     BaguaMode = "dizai"     // 地载阵 - 顺序执行
 	Fengyang  BaguaMode = "fengyang"  // 风扬阵 - 快速响应
-	Yunzhui   BaguaMode = "yunzhui"  // 云垂阵 - 容错重试
+	Yunzhui   BaguaMode = "yunzhui"   // 云垂阵 - 容错重试
 	Longfei   BaguaMode = "longfei"   // 龙飞阵 - 动态调度
 	Huyi      BaguaMode = "huyi"      // 虎翼阵 - 条件分支
 	Niaoxiang BaguaMode = "niaoxiang" // 鸟翔阵 - 扇形扩散
@@ -30,24 +30,24 @@ const (
 type NodeType string
 
 const (
-	NodeStart    NodeType = "start"
-	NodeEnd      NodeType = "end"
-	NodeLLM      NodeType = "llm"
-	NodeTool     NodeType = "tool"
+	NodeStart     NodeType = "start"
+	NodeEnd       NodeType = "end"
+	NodeLLM       NodeType = "llm"
+	NodeTool      NodeType = "tool"
 	NodeCondition NodeType = "condition"
-	NodeLoop     NodeType = "loop"
-	NodeParallel NodeType = "parallel"
-	NodeWait     NodeType = "wait"
+	NodeLoop      NodeType = "loop"
+	NodeParallel  NodeType = "parallel"
+	NodeWait      NodeType = "wait"
 )
 
 // Node 工作流节点
 type Node struct {
 	ID       string                 `json:"id" yaml:"id"`
-	Type     NodeType              `json:"type" yaml:"type"`
+	Type     NodeType               `json:"type" yaml:"type"`
 	Name     string                 `json:"name" yaml:"name"`
 	Config   map[string]interface{} `json:"config" yaml:"config"`
 	Inputs   []string               `json:"inputs" yaml:"inputs"`
-	Outputs  []string              `json:"outputs" yaml:"outputs"`
+	Outputs  []string               `json:"outputs" yaml:"outputs"`
 	Position Position               `json:"position" yaml:"position"`
 }
 
@@ -79,11 +79,11 @@ type Workflow struct {
 
 // ExecutionContext 执行上下文
 type ExecutionContext struct {
-	WorkflowID  string
-	RunID       string
-	Variables   map[string]interface{}
-	NodeStates  map[string]NodeState
-	mu          sync.RWMutex
+	WorkflowID string
+	RunID      string
+	Variables  map[string]interface{}
+	NodeStates map[string]NodeState
+	mu         sync.RWMutex
 }
 
 // NodeState 节点状态
