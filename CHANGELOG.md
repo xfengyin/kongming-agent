@@ -40,7 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 包：bagua、courier、dispatch、repeater、observatory、strategy_vault、core、
   cmd_center、generals、internal/memory、pkg/llm.History、examples/longzhong
 - 依赖：prometheus/client_golang、google/uuid、go.uber.org/zap
-- 文件：configs/、deployments/、docker-compose.yml、scripts/healthcheck.sh
+- 文件：configs/、deployments/、docker-compose.yml、scripts/healthcheck.sh、
+  docs/LAUNCH_PACK.md、docs/PROMOTION.md（发布/营销文档，README 已不引用）
+
+### Added
+- 补 MIT LICENSE（版权人 COMTool Team）
 
 ### Added
 - `pkg/tools` 工具注册表（Tool 接口 + Registry，first-match-wins）；
