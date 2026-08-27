@@ -136,3 +136,21 @@ func TestSearchNoMatch(t *testing.T) {
 		t.Errorf("无匹配应返回 0 条，实际 %d", len(got))
 	}
 }
+
+func TestLoadCRLFLineEndings(t *testing.T) {
+	// Windows CRLF 文件：\n\n 切分失效曾导致整文件塌成 1 段
+	crlf := strings.ReplaceAll(sanguoFixture, "\n", "\r\n")
+	dir := writeTempMD(t, map[string]string{"sanguo.md": crlf})
+	store, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load 失败: %v", err)
+	}
+	if store.Count() != 3 {
+		t.Errorf("CRLF 文件应切出 3 个段落，实际 %d", store.Count())
+	}
+	// 检索应正常命中
+	got := store.Search("草船借箭", 1)
+	if len(got) != 1 {
+		t.Errorf("CRLF 文件检索应命中草船借箭，实际 %d 条", len(got))
+	}
+}
