@@ -1,10 +1,9 @@
 // 多轮对话历史 - 简单内存实现
 // 过目不忘，温故知新
 //
-// 设计约束（见 docs/architecture 合理限制文档）：
-//   - 仅内存、不落盘、不引入任何依赖（不做向量检索/持久化）；
-//   - 多轮场景由调用方持有 *History 并在每轮传入 order.Context["history"]，
-//     messages 数组原样透传给 Provider（不截断、不重排）。
+// 注意：本类型将在「删除 generals 死模块」时一并移除（C3）。
+// 新架构的对话历史由 pkg/agent 内部持有（[]llm.Message + sync.Mutex），
+// 此文件仅为等待删除的 pkg/generals 提供过渡实现。
 
 package llm
 

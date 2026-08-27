@@ -109,16 +109,15 @@ func TestSessionSaveLoadRoundTripWithHistoryRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load 失败: %v", err)
 	}
-	// 还原为 llm.History 继续对话（examples/longzhong --load 的用法）
-	h := llm.NewHistoryFromMessages(loaded.History)
-	if h.Len() != 3 {
-		t.Errorf("还原 history 条数错误: %d", h.Len())
+	// 还原为消息切片交给 agent.LoadHistory 继续对话（cmd/kongming --load 的用法）
+	h := loaded.History
+	if len(h) != 3 {
+		t.Errorf("还原 history 条数错误: %d", len(h))
 	}
 	// 模拟继续对话：追加一轮
-	h.AddUser("第三问")
-	_ = h.Messages()
-	if h.Len() != 4 {
-		t.Errorf("继续对话后条数错误: %d", h.Len())
+	h = append(h, llm.Message{Role: llm.RoleUser, Content: "第三问"})
+	if len(h) != 4 {
+		t.Errorf("继续对话后条数错误: %d", len(h))
 	}
 }
 
