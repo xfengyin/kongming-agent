@@ -22,11 +22,13 @@ type Config struct {
 	APIKey   string `json:"api_key" yaml:"api_key"`   // OpenAI 兼容 API Key
 	BaseURL  string `json:"base_url" yaml:"base_url"` // Base URL
 	Model    string `json:"model" yaml:"model"`       // 模型名
-	Provider string `json:"provider" yaml:"provider"` // 指标标签
+	Provider string `json:"provider" yaml:"provider"` // Provider 显示名
 	// 知识库（轻量 RAG）
 	KnowledgeDir string `json:"knowledge_dir" yaml:"knowledge_dir"` // 本地知识库目录
 	// 默认工具
 	Tool string `json:"tool" yaml:"tool"` // 默认启用工具（如 calc）
+	// 多轮历史
+	HistoryLimit int `json:"history_limit" yaml:"history_limit"` // 按"轮"截断上限（0=不限）
 }
 
 // Load 读取配置文件（YAML 或 JSON，按扩展名自动识别），环境变量优先。

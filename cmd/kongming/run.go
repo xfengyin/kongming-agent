@@ -22,12 +22,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/zhuge/kongming/pkg/agent"
-	"github.com/zhuge/kongming/pkg/config"
-	"github.com/zhuge/kongming/pkg/knowledge"
-	"github.com/zhuge/kongming/pkg/llm"
-	"github.com/zhuge/kongming/pkg/session"
-	"github.com/zhuge/kongming/pkg/tools"
+	"github.com/xfengyin/kongming-agent/pkg/agent"
+	"github.com/xfengyin/kongming-agent/pkg/config"
+	"github.com/xfengyin/kongming-agent/pkg/knowledge"
+	"github.com/xfengyin/kongming-agent/pkg/llm"
+	"github.com/xfengyin/kongming-agent/pkg/session"
+	"github.com/xfengyin/kongming-agent/pkg/tools"
 )
 
 // version 当前版本号（与 CHANGELOG 同步）
@@ -63,7 +63,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs.StringVar(&flags.loadPath, "load", "", "从 JSON 文件加载会话（history + knowledge 配置）继续对话")
 	fs.StringVar(&flags.toolName, "tool", "", "启用内置工具：calc（计算器，识别\"计算 xxx\"表达式并安全求值）；空则不启用")
 	fs.StringVar(&flags.configPath, "config", "", "YAML/JSON 配置文件路径（环境变量优先；知识库目录/工具可由此设置）")
-	fs.IntVar(&flags.historyLimit, "history-limit", 0, "多轮历史按\"轮\"截断上限（0=不限，默认保留全部）")
+	fs.IntVar(&flags.historyLimit, "history-limit", -1, "多轮历史按\"轮\"截断上限（0=不限；未指定则取配置文件 history_limit）")
 	showVersion := fs.Bool("version", false, "打印版本号并退出")
 
 	if err := fs.Parse(args); err != nil {
@@ -117,12 +117,21 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	reg := buildRegistry(flags, stderr)
 
+	// 多轮历史截断：flag > 配置文件；哨兵 -1 表示未指定
+	historyLimit := flags.historyLimit
+	if historyLimit < 0 {
+		historyLimit = cfg.HistoryLimit
+	}
+	if historyLimit < 0 {
+		historyLimit = 0
+	}
+
 	a := agent.New(agent.Options{
 		Provider:     provider,
 		SystemPrompt: agent.DefaultSystemPrompt,
 		Knowledge:    kb,
 		Tools:        reg,
-		MaxHistory:   flags.historyLimit,
+		MaxHistory:   historyLimit,
 	})
 	if loaded != nil {
 		a.LoadHistory(loaded.History)

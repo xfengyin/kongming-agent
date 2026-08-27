@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt clean run run-example run-longzhong docker-build docker-run docker-push ci help
+.PHONY: build test lint fmt clean run run-example docker-build docker-run ci help
 
 # Variables
 BINARY_NAME=kongming
@@ -8,87 +8,76 @@ GOFLAGS=-ldflags="-s -w"
 
 # Build
 build:
-@echo "⚔️  Building..."
-@mkdir -p $(BUILD_DIR)
-$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/kongming
-@echo "✓ Built: $(BUILD_DIR)/$(BINARY_NAME)"
+	@echo "⚔️  Building..."
+	@mkdir -p $(BUILD_DIR)
+	$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/kongming
+	@echo "✓ Built: $(BUILD_DIR)/$(BINARY_NAME)"
 
 # Test
 test:
-@echo "🧪 Running tests..."
-$(GO) test -v -race -cover ./...
+	@echo "🧪 Running tests..."
+	$(GO) test -v -race -cover ./...
 
 # Coverage
 cover:
-@echo "📊 Generating coverage report..."
-$(GO) test -coverprofile=coverage.out ./...
-$(GO) tool cover -html=coverage.out -o coverage.html
-@echo "✓ Coverage report: coverage.html"
+	@echo "📊 Generating coverage report..."
+	$(GO) test -coverprofile=coverage.out ./...
+	$(GO) tool cover -html=coverage.out -o coverage.html
+	@echo "✓ Coverage report: coverage.html"
 
 # Lint
 lint:
-@echo "🔍 Running linters..."
-golangci-lint run ./...
+	@echo "🔍 Running linters..."
+	golangci-lint run ./...
 
 # Format
 fmt:
-@echo "✨ Formatting code..."
-$(GO) fmt ./...
+	@echo "✨ Formatting code..."
+	$(GO) fmt ./...
 
 # Clean
 clean:
-@echo "🧹 Cleaning..."
-rm -rf $(BUILD_DIR)
-rm -f coverage.out coverage.html
-@echo "✓ Cleaned"
+	@echo "🧹 Cleaning..."
+	rm -rf $(BUILD_DIR)
+	rm -f coverage.out coverage.html
+	@echo "✓ Cleaned"
 
-# Run
+# Run the CLI (real LLM conversation; needs KONGMING_API_KEY or --mock)
 run: build
-@echo "🚀 Starting Kongming..."
-$(BUILD_DIR)/$(BINARY_NAME)
+	@echo "🚀 Starting Kongming..."
+	$(BUILD_DIR)/$(BINARY_NAME)
 
-# Run Example
+# Run quickstart library demo
 run-example:
-@echo "📖 Running quickstart example..."
-$(GO) run ./examples/quickstart/main.go
-
-# Run Longzhong (real LLM conversation; requires KONGMING_API_KEY or --mock)
-run-longzhong:
-@echo "🧠 Running Longzhong (隆中对) demo..."
-$(GO) run ./examples/longzhong/main.go
+	@echo "📖 Running quickstart example..."
+	$(GO) run ./examples/quickstart/main.go
 
 # Docker Build
 docker-build:
-@echo "🐳 Building Docker image..."
-docker build -t zhuge/kongming:latest .
+	@echo "🐳 Building Docker image..."
+	docker build -t zhuge/kongming:latest .
 
-# Docker Run
+# Docker Run (one-shot offline demo; interactive mode needs -it)
 docker-run:
-@echo "🐳 Running Docker container..."
-docker run -p 8080:8080 -p 9090:9090 zhuge/kongming:latest
-
-# Docker Push
-docker-push:
-@echo "📤 Pushing Docker image..."
-docker push zhuge/kongming:latest
+	@echo "🐳 Running Docker container..."
+	docker run --rm zhuge/kongming:latest
 
 # CI (full pipeline)
 ci: fmt test build
-@echo "✅ All checks passed!"
+	@echo "✅ All checks passed!"
 
 # Help
 help:
-@echo "Kongming Makefile Commands"
-@echo "========================="
-@echo "make build         - Build the binary"
-@echo "make test          - Run tests"
-@echo "make cover         - Generate coverage report"
-@echo "make lint          - Run linters"
-@echo "make fmt           - Format code"
-@echo "make clean         - Clean build artifacts"
-@echo "make run           - Build and run"
-@echo "make run-example   - Run quickstart example"
-@echo "make run-longzhong - Run Longzhong LLM demo (needs KONGMING_API_KEY)"
-@echo "make docker-build  - Build Docker image"
-@echo "make docker-run    - Run Docker container"
-@echo "make ci            - Run full CI pipeline"
+	@echo "Kongming Makefile Commands"
+	@echo "========================="
+	@echo "make build         - Build the binary"
+	@echo "make test          - Run tests"
+	@echo "make cover         - Generate coverage report"
+	@echo "make lint          - Run linters"
+	@echo "make fmt           - Format code"
+	@echo "make clean         - Clean build artifacts"
+	@echo "make run           - Run the CLI (needs KONGMING_API_KEY or --mock)"
+	@echo "make run-example   - Run quickstart library demo"
+	@echo "make docker-build  - Build Docker image"
+	@echo "make docker-run    - Run one-shot offline demo"
+	@echo "make ci            - Run full CI pipeline"

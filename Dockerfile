@@ -32,12 +32,10 @@ RUN adduser -D -g '' appuser
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
+# 从构建阶段复制二进制与示例知识库
 COPY --from=builder /app/kongming .
-COPY --from=builder /app/configs ./configs
-
-# 复制健康检查脚本
-COPY --from=builder /app/scripts/healthcheck.sh /usr/local/bin/
+COPY --from=builder /app/knowledge ./knowledge
+COPY --from=builder /app/config.example.yaml .
 
 # 更改文件所有者
 RUN chown -R appuser:appuser /app
@@ -45,13 +43,7 @@ RUN chown -R appuser:appuser /app
 # 切换到非 root 用户
 USER appuser
 
-# 暴露端口
-EXPOSE 8080 9090
-
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD /usr/local/bin/healthcheck.sh || exit 1
-
-# 启动命令
+# 一次性离线 demo（CLI 是 REPL，容器非 -it 下 stdin EOF 立即退出，故用 --ask 单轮）
+# 交互模式：docker run -it --rm zhuge/kongming:latest --mock --interactive
 ENTRYPOINT ["./kongming"]
-CMD ["--config", "./configs/kongming.yaml"]
+CMD ["--mock", "--knowledge", "./knowledge", "--ask", "司马懿兵临城下，如何用空城计退敌？"]

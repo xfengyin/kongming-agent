@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/zhuge/kongming/pkg/llm"
+	"github.com/xfengyin/kongming-agent/pkg/llm"
 )
 
 // Version 当前会话文件格式版本
