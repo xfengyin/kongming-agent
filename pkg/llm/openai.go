@@ -13,8 +13,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/zhuge/kongming/pkg/observatory"
 )
 
 // 环境变量约定
@@ -22,7 +20,7 @@ const (
 	EnvAPIKey   = "KONGMING_API_KEY"  // 必填：API Key
 	EnvBaseURL  = "KONGMING_BASE_URL" // 可选：OpenAI 兼容 BaseURL，默认 https://api.openai.com/v1
 	EnvModel    = "KONGMING_MODEL"    // 可选：模型名，默认 gpt-4o-mini
-	EnvProvider = "KONGMING_PROVIDER" // 可选：指标标签，默认 "openai"
+	EnvProvider = "KONGMING_PROVIDER" // 可选：Provider 显示名，默认 "openai-compatible"
 )
 
 // DefaultBaseURL OpenAI 官方
@@ -100,18 +98,14 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
 
-	start := time.Now()
 	resp, err := p.client.Do(httpReq)
-	latency := time.Since(start).Seconds()
 	if err != nil {
-		observatory.RecordLLMCall(p.name, "error", latency)
 		return nil, fmt.Errorf("调用 %s 失败: %w", p.name, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		observatory.RecordLLMCall(p.name, "error", latency)
 		return nil, fmt.Errorf("LLM API 返回 %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
 	}
 
@@ -124,10 +118,8 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 		Model string `json:"model"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		observatory.RecordLLMCall(p.name, "error", latency)
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}
-	observatory.RecordLLMCall(p.name, "success", latency)
 
 	if len(payload.Choices) == 0 {
 		return nil, fmt.Errorf("LLM API 返回空 choices")

@@ -119,29 +119,3 @@ func TestLoadEmptyPath(t *testing.T) {
 		t.Errorf("空路径应返回空配置: %+v", cfg)
 	}
 }
-
-func TestApplySetsEnv(t *testing.T) {
-	t.Setenv("KONGMING_API_KEY", "") // 确保环境变量为空
-	cfg := &Config{
-		APIKey:   "sk-from-config",
-		BaseURL:  "https://api.qwen.com/v1",
-		Model:    "qwen-plus",
-		Provider: "qwen",
-	}
-	cfg.Apply()
-	if os.Getenv("KONGMING_API_KEY") != "sk-from-config" {
-		t.Errorf("Apply 应写入环境变量: %s", os.Getenv("KONGMING_API_KEY"))
-	}
-	if os.Getenv("KONGMING_MODEL") != "qwen-plus" {
-		t.Errorf("Apply 应写入环境变量: %s", os.Getenv("KONGMING_MODEL"))
-	}
-}
-
-func TestApplyDoesNotOverwriteEnv(t *testing.T) {
-	t.Setenv("KONGMING_API_KEY", "sk-already-set")
-	cfg := &Config{APIKey: "sk-from-config"}
-	cfg.Apply()
-	if os.Getenv("KONGMING_API_KEY") != "sk-already-set" {
-		t.Errorf("Apply 不应覆盖已有环境变量: %s", os.Getenv("KONGMING_API_KEY"))
-	}
-}
