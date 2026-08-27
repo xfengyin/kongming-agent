@@ -105,6 +105,8 @@ func (s *Store) Search(query string, limit int) []Paragraph {
 // splitParagraphs 按空行切分 .md 内容为段落。
 // 若某块只有标题行（# 开头）且下一块是正文，则合并为一个段落（标题+正文）。
 func splitParagraphs(file, content string) []Paragraph {
+	// 统一换行符：Windows CRLF 下 "\n\n" 无法切分段落，先归一为 "\n"
+	content = strings.ReplaceAll(content, "\r\n", "\n")
 	blocks := strings.Split(content, "\n\n")
 	paras := make([]Paragraph, 0, len(blocks))
 

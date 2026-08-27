@@ -1,0 +1,10 @@
+# 构建产物
+/bin/
+*.exe
+
+# 本机工具/编辑器配置
+.claude/
+
+# 测试覆盖报告
+coverage.out
+coverage.html
