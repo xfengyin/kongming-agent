@@ -74,6 +74,12 @@ jobs:
       - name: Build binary
         run: go build -ldflags="-s -w" -o kongming ./cmd/kongming
 
+      - name: Smoke test (offline demo)
+        run: |
+          ./kongming --mock --ask "天下大势如何？" | grep -q "诸葛亮"
+          ./kongming --mock --tool calc --ask "计算 123*456" | grep -q "56088"
+          go run ./examples/quickstart > /dev/null
+
       - name: Build examples
         run: go build ./examples/...
 

@@ -12,9 +12,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/zhuge/kongming/pkg/knowledge"
-	"github.com/zhuge/kongming/pkg/llm"
-	"github.com/zhuge/kongming/pkg/tools"
+	"github.com/xfengyin/kongming-agent/pkg/knowledge"
+	"github.com/xfengyin/kongming-agent/pkg/llm"
+	"github.com/xfengyin/kongming-agent/pkg/tools"
 )
 
 // recordingProvider 记录每次 Chat 收到的完整消息（断言多轮历史透传用）

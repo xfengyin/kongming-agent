@@ -14,10 +14,10 @@ var errDivZero = errors.New("除数为零")
 
 // fakeTool 可编程假工具：由 match 决定是否命中
 type fakeTool struct {
-	name  string
-	match bool
+	name   string
+	match  bool
 	output string
-	err   error
+	err    error
 }
 
 func (f *fakeTool) Name() string { return f.name }

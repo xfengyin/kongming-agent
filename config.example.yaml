@@ -1,5 +1,5 @@
-# Kongming 隆中对 demo 配置示例
-# 用法：go run ./examples/longzhong/main.go --config config.example.yaml
+# Kongming CLI 配置示例
+# 用法：kongming --config config.example.yaml
 #
 # 优先级：命令行 flag > 环境变量 > 配置文件 > 内置默认。
 # 环境变量对应：KONGMING_API_KEY / KONGMING_BASE_URL / KONGMING_MODEL / KONGMING_PROVIDER
@@ -8,7 +8,7 @@
 api_key: ""                    # 建议留空并用 export KONGMING_API_KEY=sk-xxx 注入
 base_url: "https://api.openai.com/v1"   # DeepSeek: https://api.deepseek.com/v1
 model: "gpt-4o-mini"           # DeepSeek: deepseek-chat；通义: qwen-plus
-provider: "openai"             # 指标标签，仅展示用
+provider: "openai"             # Provider 显示名（可选）
 
 # 轻量 RAG：本地知识库目录（读取 .md）
 knowledge_dir: "./knowledge"
@@ -16,6 +16,9 @@ knowledge_dir: "./knowledge"
 # 默认工具（空=不启用；calc=内置计算器，识别"计算 xxx"并安全求值）
 tool: ""
 
+# 多轮历史按"轮"截断上限（0=不限；等价 --history-limit N）
+history_limit: 0
+
 # 也可用 JSON 格式（--config config.json）：
 # { "api_key": "", "base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini",
-#   "provider": "openai", "knowledge_dir": "./knowledge", "tool": "" }
+#   "provider": "openai", "knowledge_dir": "./knowledge", "tool": "", "history_limit": 0 }

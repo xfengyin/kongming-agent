@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zhuge/kongming/pkg/llm"
+	"github.com/xfengyin/kongming-agent/pkg/llm"
 )
 
 func testHistory() []llm.Message {

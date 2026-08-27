@@ -16,6 +16,7 @@ model: "deepseek-chat"
 provider: "deepseek"
 knowledge_dir: "./knowledge"
 tool: "calc"
+history_limit: 5
 `
 
 const jsonSample = `{
@@ -50,6 +51,9 @@ func TestLoadYAML(t *testing.T) {
 	}
 	if cfg.KnowledgeDir != "./knowledge" || cfg.Tool != "calc" {
 		t.Errorf("知识库/工具字段错误: %+v", cfg)
+	}
+	if cfg.HistoryLimit != 5 {
+		t.Errorf("history_limit 字段错误: %+v", cfg)
 	}
 }
 

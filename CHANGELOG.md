@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M9 (v0.8.0 候选) — 彻底重构
+
+### Changed
+- **架构瘦身**：16 个包收编为 7 个（agent/config/knowledge/llm/session/tools + cmd），
+  约 5900 行减至 ~2500 行；删除全部未接线的"展示性架构"——八卦阵工作流引擎
+  （bagua，8 模式只实现 4 个、0 测试）、传令兵消息总线（courier）、异步调度
+  （dispatch）、重试/熔断（repeater，构造器拼写错误 NewReperier）、观测台
+  （observatory，Prometheus 指标，多数埋点无人调）、锦囊库（strategy_vault，
+  LoadFromDir 为 TODO 桩）、三层记忆（internal/memory，goroutine 泄漏）、
+  军令/战报域类型（core + cmd_center 整包重复导出）、五虎将罐头池（generals）
+- **CLI 升级**：`cmd/kongming` 从空壳（metrics HTTP 服务）升级为真正的产品入口，
+  整合原 `examples/longzhong` demo 的全部能力（--mock/--ask/--interactive/
+  --knowledge/--json/--save/--load/--tool/--config），新增 `--history-limit`
+  （按"轮"截断）与 `--version`；`run(args, stdin, stdout, stderr) int` 可测试化，
+  JSON 契约（turnResult/sessionResult）原样保留
+- **新核心包**（`pkg/agent`）：`Agent.Ask(ctx, question) -> Reply` 统一编排
+  工具预检 → RAG 检索 → 消息组装 → LLM 调用 → 历史记录；修复原 `Commander.Dispatch`
+  "全败仍报胜"、`ListOrders` 无法过滤 Pending、`WuHuPool.Execute` 无锁改共享状态
+  （数据竞争）等 bug；错误改为显式返回（不再吞成假战报）
+- **模块路径对齐**：`github.com/zhuge/kongming` → `github.com/xfengyin/kongming-agent`
+  （对齐仓库真实地址，修复 `go install` 失效）；所有 import 同步更新
+- **依赖收编**：移除 prometheus/client_golang、google/uuid、go.uber.org/zap
+  （日志整体砍掉，Agent 不持 logger）；直接依赖仅剩 `gopkg.in/yaml.v3`
+- **配置收敛**：删除 `config.Apply()` 写环境变量通道（改为直接
+  `NewOpenAIProvider(cfg.*)`）；新增 `history_limit` 配置字段；删除剧场配置
+  `configs/kongming.yaml`（server/features/generals/vault/bagua/courier/repeater 全为死配置）
+- **修复**：`pkg/knowledge` CRLF 换行导致 `.md` 整文件塌成 1 段（归一化换行符）；
+  `KONGMING_PROVIDER` 语义从"指标标签"改为"显示名"
+- **部署收敛**：删除 docker-compose / deployments（Prometheus/Grafana）/ healthcheck
+  （curl :9090）；Dockerfile 改为一次性离线 demo 镜像
+
+### Removed
+- 包：bagua、courier、dispatch、repeater、observatory、strategy_vault、core、
+  cmd_center、generals、internal/memory、pkg/llm.History、examples/longzhong
+- 依赖：prometheus/client_golang、google/uuid、go.uber.org/zap
+- 文件：configs/、deployments/、docker-compose.yml、scripts/healthcheck.sh
+
+### Added
+- `pkg/tools` 工具注册表（Tool 接口 + Registry，first-match-wins）；
+  `extractCalcExpr` 从 demo 移入计算器工具（含 13 用例迁移）
+- `examples/quickstart` 重写为库嵌入演示（单轮/多轮/工具/RAG）
+- `pkg/agent` 测试（97%+）：多轮历史、知识注入、工具短路与回落、历史截断、
+  并发安全（-race）、ctx 取消
+- `cmd/kongming/run_test.go`：CLI 集成测试 14 例（JSON 契约/会话往返/工具/配置/历史截断）
+
 ## [Unreleased] - M8 (v0.7.0 候选)
 
 ### Added

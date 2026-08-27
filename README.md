@@ -1,11 +1,12 @@
-# 🧭 Kongming (孔明) — A Go Agent Framework with Three Kingdoms Theming
+# 🧭 Kongming (孔明) — A Lightweight LLM Agent CLI in Go
 
 <div align="center">
 
 <h3>运筹帷幄之中，决胜千里之外<br><em>Plan within the tent, win a thousand miles away</em></h3>
 
 <p>
-<strong>An open-source multi-agent orchestration framework in Go, where agents are generals of Shu Han and the orchestrator is the strategist Zhuge Liang.</strong>
+<strong>Talk to Zhuge Liang himself. A lightweight, dependency-free LLM agent CLI:
+conversation, local knowledge base (RAG), tool calling, and session persistence.</strong>
 </p>
 
 <p>
@@ -18,213 +19,150 @@
 
 </div>
 
-## Why Kongming?
+## What it is
 
-Most agent frameworks are either heavyweight (LangChain/AutoGen-scale) or boring.
-Kongming keeps the orchestration **lightweight and readable**, and wraps it in a
-Three Kingdoms story that makes every concept memorable:
+Kongming is a **zero-framework-dependency LLM agent CLI** in Go. One binary, one YAML dependency,
+a handful of small packages — each one readable in a sitting. The Three Kingdoms story is the theme:
+you are the lord (主公), and the strategist Zhuge Liang (诸葛亮) answers through any
+OpenAI-compatible API (DeepSeek / Qwen / OpenAI all work through the same interface).
 
-| Three Kingdoms concept | What it really is |
+| Feature | What it does |
 |---|---|
-| 🏯 **军师府 Commander** | Central dispatcher: decompose task → pick generals → collect reports |
-| ⚔️ **五虎将 Generals** | A pool of role-specialized agents (5 Tigers of Shu) with skills & handlers |
-| 🧠 **诸葛亮 Kongming (LLM)** | An LLM-backed strategist agent that answers questions through any OpenAI-compatible API |
-| 🎁 **锦囊库 Strategy Vault** | Pluggable skill/tool registry |
-| 📨 **传令兵 Courier** | Message routing between components |
+| 💬 **Conversation** | Single-turn `--ask` or multi-turn `--interactive` REPL |
+| 📚 **Lightweight RAG** | Read local `.md` files, retrieve relevant paragraphs into context — no vector DB |
+| 🛠️ **Tool calling** | Built-in calculator: recognize `计算 123*456`, evaluate safely, short-circuit |
+| 💾 **Session persistence** | Save / load a conversation (+ knowledge config) as JSON |
+| ⚙️ **Config files** | YAML or JSON, with env-var overrides |
+| 🧪 **Library-usable** | `pkg/agent` exposes a clean `Agent.Ask()` API for embedding |
 
 ## ✨ Features
 
-**Implemented & tested:**
+- ✅ **Real LLM integration** — `llm.Provider` interface + OpenAI-compatible adapter
+- ✅ **Multi-turn history** — automatic history threading; optional per-round truncation (`--history-limit`)
+- ✅ **Tool pre-check** — calculator short-circuits math questions without calling the LLM
+- ✅ **Lightweight RAG** — `pkg/knowledge` reads local `.md`, ranks paragraphs by token-frequency matching
+- ✅ **Session save / load** — atomic JSON persistence, knowledge dir included
+- ✅ **Structured JSON output** — one object per turn, `session` summary on exit (pipeline-friendly)
+- ✅ **Tests with `-race`** — agent / llm (httptest) / knowledge / session / tools / CLI integration
 
-- ✅ **Real LLM integration** — driver-based `LLMProvider` interface + OpenAI-compatible adapter (works with DeepSeek / Qwen / OpenAI out of the box)
-- ✅ **隆中对 (Longzhong) demo** — `go run ./examples/longzhong` starts a real conversation with 诸葛亮 using your own API key
-- ✅ **五虎将 agent pool** — 5 role agents with skill-based selection + scoring
-- ✅ **Commander dispatch** — explicit general targeting (点将) or automatic skill-based selection (按技选将)
-- ✅ **Courier message routing** — typed messages with delivery status
-- ✅ **Prometheus metrics** — HTTP/LLM/order observability
-- ✅ **Lightweight RAG (v0.2.0+)** — `pkg/knowledge` reads local `.md` files and retrieves relevant paragraphs (token-frequency matching, zero vector DB / zero external deps)
-- ✅ **Core unit tests** — courier, generals, commander, LLM provider (httptest, no external network)
+## 🚀 Quickstart
 
-**On the roadmap (not yet implemented):**
-
-- 🚧 八卦阵 workflow engine (DAG executor) — types defined, executors not wired
-- 🚧 RAG / vector store — explicitly out of scope for v0.1 (see [boundaries](#boundaries))
-- 🚧 Distributed scheduling / multi-tenant SaaS
-- 🚧 OTel tracing (Prometheus metrics only for now)
-
-## 🚀 Quickstart (real LLM conversation)
-
-### Option A — `go install` (prebuilt CLI)
+### Option A — install the CLI
 
 ```bash
-# Install the CLI directly from source (Go 1.21+ required)
+# Go 1.21+ required
 go install github.com/xfengyin/kongming-agent/cmd/kongming@latest
 
-# Configure any OpenAI-compatible provider
+# configure any OpenAI-compatible provider
 export KONGMING_API_KEY=sk-xxx
-export KONGMING_BASE_URL=https://api.deepseek.com/v1   # optional, default: OpenAI
-export KONGMING_MODEL=deepseek-chat                    # optional, default: gpt-4o-mini
+export KONGMING_BASE_URL=https://api.deepseek.com/v1   # optional, default OpenAI
+export KONGMING_MODEL=deepseek-chat                    # optional, default gpt-4o-mini
 
-# Start the server (metrics + health on :9090)
-kongming
+# no API key? try the offline demo
+kongming --mock --ask "天下大势如何？"
 ```
 
-> 💡 Note: `go install` builds the `cmd/kongming` server binary. To have a
-> one-shot conversation with 诸葛亮 from the command line, clone the repo and
-> use Option B or download a Release artifact (Option C).
-
-### Option B — run the 隆中对 demo from source
+### Option B — build from source
 
 ```bash
 git clone https://github.com/xfengyin/kongming-agent.git
 cd kongming-agent
 
-# 1. Configure any OpenAI-compatible provider
 export KONGMING_API_KEY=sk-xxx
-export KONGMING_BASE_URL=https://api.deepseek.com/v1   # optional, default: OpenAI
-export KONGMING_MODEL=deepseek-chat                    # optional, default: gpt-4o-mini
-
-# 2. Talk to 诸葛亮
-go run ./examples/longzhong/main.go
+go run ./cmd/kongming --interactive
 ```
 
 ### Option C — download a Release binary
 
-Prebuilt binaries (linux-amd64 / windows-amd64 / darwin-arm64) are attached to
-every [GitHub Release](https://github.com/xfengyin/kongming-agent/releases)
-tagged `v*`. Download and unpack, then run:
+Prebuilt binaries (linux-amd64 / windows-amd64 / darwin-arm64) are attached to every
+[GitHub Release](https://github.com/xfengyin/kongming-agent/releases) tagged `v*`:
 
 ```bash
-# linux / macOS
 tar -xzf kongming-linux-amd64.tar.gz
-cd kongming-linux-amd64 && ./kongming
-
-# windows
-# unzip kongming-windows-amd64.zip, then run kongming.exe
+cd kongming-linux-amd64 && ./kongming --mock
 ```
 
-Example interaction:
+## Usage
 
 ```
-=== 隆中对 · 孔明军师 ===
-主公> 天下三分，魏蜀吴鼎立，亮以为当如何？
-🧠 诸葛亮：
-天下大势……（real LLM answer）
+kongming [flags]
+
+  --mock               offline demo, no API key required
+  --ask "问题"          ask one question and exit
+  --interactive        multi-turn REPL (in-memory history)
+  --knowledge DIR      lightweight RAG: local .md knowledge base
+  --json               structured JSON output (one object per turn)
+  --save PATH          save session as JSON on exit
+  --load PATH          load a session (history + knowledge) and continue
+  --tool calc          enable the built-in calculator
+  --config PATH        YAML/JSON config file (env vars take priority)
+  --history-limit N    cap history to the most recent N rounds (0 = unlimited)
+  --version            print version and exit
 ```
 
-No API key? Try the offline demo:
+Examples:
 
 ```bash
-go run ./examples/longzhong/main.go --mock
-```
+# one-shot
+kongming --mock --ask "如何提升团队执行力？"
 
-One-shot mode:
+# offline interactive with knowledge base and calculator
+kongming --mock --interactive --knowledge ./knowledge --tool calc
 
-```bash
-go run ./examples/longzhong/main.go --ask "如何提升团队执行力？"
-```
+# knowledge retrieval: "空城计" matches the bundled Three Kingdoms passages
+kongming --mock --knowledge ./knowledge --ask "司马懿兵临城下，如何用空城计退敌？"
 
-Multi-turn mode (v0.2.0+, keeps in-memory conversation history):
-
-```bash
-go run ./examples/longzhong/main.go --interactive
-# or offline: go run ./examples/longzhong/main.go --mock --interactive
-```
-
-Knowledge-base mode (v0.2.0+, lightweight RAG — retrieves relevant passages from local `.md` files and injects them into the LLM context):
-
-```bash
-# try the bundled Three Kingdoms knowledge base
-go run ./examples/longzhong/main.go --knowledge ./knowledge --ask "司马懿兵临城下，如何用空城计退敌？"
-# combine with multi-turn: --interactive --knowledge ./knowledge
-# point at your own knowledge dir: --knowledge /path/to/your/markdown/docs
-```
-
-Structured JSON output (v0.4.0+, one JSON object per turn, `session` summary on multi-turn exit — easy to pipe to jq/scripts):
-
-```bash
-go run ./examples/longzhong/main.go --mock --json --ask "如何三分天下？"
+# JSON output (pipe to jq)
+kongming --mock --json --ask "如何三分天下？"
 # {"type":"turn","question":"如何三分天下？","general":"诸葛亮","answer":"...","model":"mock-model","success":true,"turns":2}
-# multi-turn: --json --interactive ends with {"type":"session","total_turns":N,"questions":[...],"turns":[...]}
+
+# save a conversation, load it another day
+kongming --mock --interactive --save ./session.json
+kongming --mock --interactive --load ./session.json
+
+# calculator short-circuits; non-math questions fall back to the LLM
+kongming --mock --tool calc --ask "计算 123*456"   # 🧮 计算结果：123*456 = 56088
 ```
 
-Session save / load (v0.5.0+, persist multi-turn conversation + knowledge config as JSON):
+Config file priority: **command-line flags > environment variables > config file > defaults**.
+See [config.example.yaml](config.example.yaml) for every field.
 
-```bash
-# save on exit (multi-turn)
-go run ./examples/longzhong/main.go --mock --interactive --save ./session.json
-# load and continue another day
-go run ./examples/longzhong/main.go --mock --interactive --load ./session.json
-# knowledge dir is stored in the session too; --knowledge overrides it
-```
-
-Tool calling (v0.6.0+, built-in calculator — safe expression evaluation, no arbitrary code):
-
-```bash
-go run ./examples/longzhong/main.go --tool calc --ask "计算 123*456"
-# 🛠️  诸葛亮（工具：calc）：
-# 🧮 计算结果：123*456 = 56088
-
-# non-math questions fall back to the LLM flow automatically
-go run ./examples/longzhong/main.go --tool calc --ask "天下大势如何？"
-```
-
-Config file support (v0.7.0+, YAML or JSON; env vars take priority over the file):
-
-```bash
-# edit config.example.yaml (LLM connection / knowledge dir / default tool)
-go run ./examples/longzhong/main.go --config config.example.yaml
-# priority: command-line flags > env vars > config file > defaults
-# JSON also works: --config config.json
-```
-
-## 🧪 Run the tests
+## 🧪 Tests & build
 
 ```bash
 make test        # go test -v -race -cover ./...
 make build       # build ./cmd/kongming binary
-make run-example # run the structural quickstart demo
+make run-example # run the library-embedding demo
 ```
 
 ## 📦 Project layout
 
 ```
 kongming-agent/
-├── cmd/kongming/            # server entrypoint (metrics + health)
-├── examples/
-│   ├── longzhong/           # ⭐ real LLM conversation with 诸葛亮
-│   └── quickstart/          # structural demo (no API key needed)
-├── internal/memory/         # three-tier memory store
+├── cmd/kongming/            # the CLI (flags, wiring, REPL, JSON output)
+├── examples/quickstart/     # embed pkg/agent as a library demo
 ├── pkg/
-│   ├── core/                # shared domain types (order/report/strategy)
-│   ├── cmd_center/          # 军师府 Commander dispatcher
-│   ├── config/              # YAML/JSON config loading (v0.7.0+)
-│   ├── generals/            # 五虎将 agent pool + 诸葛亮 LLM strategist
-│   ├── llm/                 # LLMProvider interface + OpenAI-compatible adapter
-│   ├── knowledge/           # lightweight RAG: local .md knowledge base (v0.2.0+)
-│   ├── tools/               # safe built-in tools: calculator (v0.6.0+)
-│   ├── courier/             # 传令兵 message routing
-│   ├── bagua/               # 八卦阵 workflow engine (roadmap)
-│   ├── dispatch/            # async task dispatcher
-│   ├── observatory/         # Prometheus metrics
-│   ├── repeater/            # retry with backoff
-│   └── strategy_vault/      # 锦囊库 skill registry
-├── configs/                 # YAML configuration
-└── deployments/             # Prometheus/Grafana compose files
+│   ├── agent/               # ★ core orchestrator: Ask / history / tools / RAG
+│   ├── config/              # YAML/JSON config loading (env overrides)
+│   ├── knowledge/           # lightweight RAG: local .md knowledge base
+│   ├── llm/                 # Provider interface + OpenAI-compatible adapter + Mock
+│   ├── session/             # session persistence (atomic JSON save/load)
+│   └── tools/               # tool registry + calculator
+├── knowledge/               # bundled Three Kingdoms knowledge base (.md)
+├── config.example.yaml      # configuration example
+└── Dockerfile               # one-shot offline demo image
 ```
 
 ## 🔌 LLM Provider configuration
 
-Kongming uses a driver-based design — one interface, many providers:
-
 | Env var | Required | Default | Description |
 |---|---|---|---|
 | `KONGMING_API_KEY` | ✅ | — | API key (any OpenAI-compatible service) |
-| `KONGMING_BASE_URL` | — | `https://api.openai.com/v1` | Base URL, e.g. `https://api.deepseek.com/v1`, `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| `KONGMING_MODEL` | — | `gpt-4o-mini` | Model name, e.g. `deepseek-chat`, `qwen-plus` |
-| `KONGMING_PROVIDER` | — | `openai-compatible` | Label used in metrics |
+| `KONGMING_BASE_URL` | — | `https://api.openai.com/v1` | e.g. `https://api.deepseek.com/v1`, `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `KONGMING_MODEL` | — | `gpt-4o-mini` | e.g. `deepseek-chat`, `qwen-plus` |
+| `KONGMING_PROVIDER` | — | `openai-compatible` | display name only |
 
-Implement your own provider by satisfying the `llm.Provider` interface:
+Implement your own provider by satisfying `llm.Provider`:
 
 ```go
 type Provider interface {
@@ -233,23 +171,28 @@ type Provider interface {
 }
 ```
 
-## 🛠️ Development
+## 🧩 Using it as a library
 
-```bash
-make fmt   # format
-make test  # tests
-make ci    # fmt + test + build
+```go
+import "github.com/xfengyin/kongming-agent/pkg/agent"
+
+a := agent.New(agent.Options{
+    Provider:     &llm.MockProvider{},
+    SystemPrompt: agent.DefaultSystemPrompt,
+    Tools:        tools.NewRegistry(tools.NewCalculator()),
+    Knowledge:    kb,   // *knowledge.Store, optional
+})
+reply, err := a.Ask(ctx, "天下大势如何？")
 ```
 
-## 🚧 Boundaries (what we deliberately do NOT do)
+## 🚧 Boundaries
 
 1. **No self-hosted LLM / training / fine-tuning** — model capability is fully delegated to external APIs.
-2. **No RAG engine / vector DB in v0.1** — if needed later, only "read a local file into context" minimal form.
-3. **No visual workflow editor / distributed scheduling / multi-tenant SaaS** — v0.1 is a single-process, single-user local framework.
-4. **Not a LangChain/AutoGen feature-complete clone** — it is a light, readable, Three Kingdoms-themed teaching & rapid-prototyping framework.
-5. **No vendor lock-in** — no default keys, no proxy relay; missing key ⇒ the demo errors out with setup guidance.
-6. **Not production-grade** — research/demo level; harden before production use. No SLA.
-7. **Theming only** — Three Kingdoms naming/narrative is packaging, not a promise of role-play quality.
+2. **No vector DB / heavy RAG engine** — knowledge retrieval is the minimal "read local files into context" form.
+3. **Single-process, single-user** — no distributed scheduling, no multi-tenant SaaS, no visual workflow editor.
+4. **Not a LangChain/AutoGen clone** — deliberately light and readable; ~2.5k LOC total.
+5. **No vendor lock-in** — no default keys; a missing key fails with setup guidance.
+6. **Not production-grade** — research/demo level; harden before production use.
 
 ## 📄 License
 

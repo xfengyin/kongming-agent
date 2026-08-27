@@ -1,4 +1,4 @@
-module github.com/zhuge/kongming
+module github.com/xfengyin/kongming-agent
 
 go 1.21
 

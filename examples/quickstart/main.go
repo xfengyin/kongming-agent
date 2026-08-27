@@ -13,10 +13,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/zhuge/kongming/pkg/agent"
-	"github.com/zhuge/kongming/pkg/knowledge"
-	"github.com/zhuge/kongming/pkg/llm"
-	"github.com/zhuge/kongming/pkg/tools"
+	"github.com/xfengyin/kongming-agent/pkg/agent"
+	"github.com/xfengyin/kongming-agent/pkg/knowledge"
+	"github.com/xfengyin/kongming-agent/pkg/llm"
+	"github.com/xfengyin/kongming-agent/pkg/tools"
 )
 
 func main() {
