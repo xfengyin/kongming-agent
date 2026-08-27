@@ -9,6 +9,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"unicode"
@@ -22,6 +23,21 @@ func NewCalculator() *Calculator { return &Calculator{} }
 
 // Name 工具名
 func (c *Calculator) Name() string { return "calc" }
+
+// Try 判断 question 是否为计算请求（命中中文/英文前缀或裸表达式）。
+// 命中且求值成功返回 (true, 结果, nil)；命中但表达式非法（如除零）
+// 返回 (true, "", err)，由 Agent 决定回落 LLM；不命中返回 (false, "", nil)。
+func (c *Calculator) Try(ctx context.Context, question string) (bool, string, error) {
+	expr, ok := extractCalcExpr(question)
+	if !ok {
+		return false, "", nil
+	}
+	val, err := Evaluate(expr)
+	if err != nil {
+		return true, "", err
+	}
+	return true, fmt.Sprintf("🧮 计算结果：%s = %s", expr, formatNumber(val)), nil
+}
 
 // Evaluate 求值表达式，返回结果字符串
 func (c *Calculator) Evaluate(expr string) (string, error) {
@@ -54,6 +70,57 @@ func formatNumber(v float64) string {
 		return fmt.Sprintf("%d", int64(v))
 	}
 	return fmt.Sprintf("%g", v)
+}
+
+// extractCalcExpr 从问题文本中提取计算表达式。
+// 支持中文前缀（计算/算一下/帮我算）、英文前缀（calc/calculate），
+// 以及裸表达式（如 "123*456"）。返回表达式与是否匹配。
+func extractCalcExpr(question string) (string, bool) {
+	q := strings.TrimSpace(question)
+	if q == "" {
+		return "", false
+	}
+	// 去尾部提问语气词（循环剥到稳定为止，兼容"…等于多少？"这类叠加）
+	for changed := true; changed; {
+		changed = false
+		for _, suf := range []string{"等于多少", "是多少", "等于几", "的结果", "等于", "= ?", "=?", "？", "?"} {
+			if strings.HasSuffix(q, suf) {
+				q = strings.TrimSpace(strings.TrimSuffix(q, suf))
+				changed = true
+			}
+		}
+	}
+	// 去前缀
+	for _, pre := range []string{"计算", "算一下", "帮我算", "帮我计算", "请问计算", "calculate", "calc", "compute"} {
+		if strings.HasPrefix(strings.ToLower(q), pre) {
+			q = strings.TrimSpace(q[len(pre):])
+			break
+		}
+	}
+	// 去可能残留的冒号/等号
+	q = strings.Trim(q, "：:＝=，, ")
+	if q == "" {
+		return "", false
+	}
+	// 必须是纯表达式字符：数字、四则、括号、小数点、空白
+	for _, r := range q {
+		if unicode.IsDigit(r) || strings.ContainsRune("+-*/(). ", r) {
+			continue
+		}
+		return "", false
+	}
+	// 至少要有一个数字
+	hasDigit := false
+	for _, r := range q {
+		if unicode.IsDigit(r) {
+			hasDigit = true
+			break
+		}
+	}
+	if !hasDigit {
+		return "", false
+	}
+	return q, true
 }
 
 // parser 递归下降解析器
