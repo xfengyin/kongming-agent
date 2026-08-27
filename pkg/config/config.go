@@ -47,15 +47,6 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Apply 把配置合并到当前进程（供 examples/longzhong 使用）。
-// 仅当环境变量未设置时，才用配置文件的值写入环境变量。
-func (c *Config) Apply() {
-	setEnvIfEmpty("KONGMING_API_KEY", c.APIKey)
-	setEnvIfEmpty("KONGMING_BASE_URL", c.BaseURL)
-	setEnvIfEmpty("KONGMING_MODEL", c.Model)
-	setEnvIfEmpty("KONGMING_PROVIDER", c.Provider)
-}
-
 // parse 按扩展名解析：.json → JSON，其余按 YAML（含 .yaml/.yml/无扩展名）
 func parse(data []byte, path string, cfg *Config) error {
 	lower := strings.ToLower(path)
@@ -84,15 +75,5 @@ func applyEnv(cfg *Config) {
 	}
 	if v := os.Getenv("KONGMING_PROVIDER"); v != "" {
 		cfg.Provider = v
-	}
-}
-
-// setEnvIfEmpty 仅当环境变量为空时写入（命令行 flag 优先于配置文件）
-func setEnvIfEmpty(name, value string) {
-	if value == "" {
-		return
-	}
-	if os.Getenv(name) == "" {
-		_ = os.Setenv(name, value)
 	}
 }
