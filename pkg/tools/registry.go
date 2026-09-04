@@ -37,3 +37,16 @@ func (r *Registry) Try(ctx context.Context, question string) (handled bool, tool
 	}
 	return false, "", "", nil
 }
+
+// Close 关闭注册表中所有持有资源的工具（如 MCP 子进程连接）。
+func (r *Registry) Close() error {
+	if r == nil {
+		return nil
+	}
+	for _, t := range r.tools {
+		if c, ok := t.(interface{ Close() error }); ok {
+			_ = c.Close()
+		}
+	}
+	return nil
+}

@@ -5,7 +5,7 @@
 <h3>运筹帷幄之中，决胜千里之外<br><em>Plan within the tent, win a thousand miles away</em></h3>
 
 <p>
-<strong>Talk to Zhuge Liang himself. A lightweight, dependency-free LLM agent CLI:
+<strong>Talk to Zhuge Liang himself. A lightweight LLM agent CLI built on proven libraries:
 conversation, local knowledge base (RAG), tool calling, and session persistence.</strong>
 </p>
 
@@ -31,6 +31,7 @@ OpenAI-compatible API (DeepSeek / Qwen / OpenAI all work through the same interf
 | 💬 **Conversation** | Single-turn `--ask` or multi-turn `--interactive` REPL |
 | 📚 **Lightweight RAG** | Read local `.md` files, retrieve relevant paragraphs into context — no vector DB |
 | 🛠️ **Tool calling** | Built-in calculator: recognize `计算 123*456`, evaluate safely, short-circuit |
+| 🔌 **MCP tools** | Mount any stdio MCP Server (filesystem, git, web…) via `--mcp` — protocol handled by `mark3labs/mcp-go` |
 | 💾 **Session persistence** | Save / load a conversation (+ knowledge config) as JSON |
 | ⚙️ **Config files** | YAML or JSON, with env-var overrides |
 | 🧪 **Library-usable** | `pkg/agent` exposes a clean `Agent.Ask()` API for embedding |
@@ -95,6 +96,8 @@ kongming [flags]
   --save PATH          save session as JSON on exit
   --load PATH          load a session (history + knowledge) and continue
   --tool calc          enable the built-in calculator
+  --mcp "npx -y @modelcontextprotocol/server-filesystem /tmp"
+                        mount a stdio MCP Server as tools
   --config PATH        YAML/JSON config file (env vars take priority)
   --history-limit N    cap history to the most recent N rounds (0 = unlimited)
   --version            print version and exit
@@ -122,6 +125,9 @@ kongming --mock --interactive --load ./session.json
 
 # calculator short-circuits; non-math questions fall back to the LLM
 kongming --mock --tool calc --ask "计算 123*456"   # 🧮 计算结果：123*456 = 56088
+
+# mount a filesystem MCP server, then ask it to list allowed directories
+kongming --mock --mcp "npx -y @modelcontextprotocol/server-filesystem /tmp" --ask "list_allowed_directories"
 ```
 
 Config file priority: **command-line flags > environment variables > config file > defaults**.
@@ -145,9 +151,9 @@ kongming-agent/
 │   ├── agent/               # ★ core orchestrator: Ask / history / tools / RAG
 │   ├── config/              # YAML/JSON config loading (env overrides)
 │   ├── knowledge/           # lightweight RAG: local .md knowledge base
-│   ├── llm/                 # Provider interface + OpenAI-compatible adapter + Mock
+│   ├── llm/                 # Provider interface + OpenAI-compatible adapter (go-openai) + Mock
 │   ├── session/             # session persistence (atomic JSON save/load)
-│   └── tools/               # tool registry + calculator
+│   └── tools/               # tool registry + calculator (govaluate) + MCP adapter (mcp-go)
 ├── knowledge/               # bundled Three Kingdoms knowledge base (.md)
 ├── config.example.yaml      # configuration example
 └── Dockerfile               # one-shot offline demo image
@@ -185,12 +191,21 @@ a := agent.New(agent.Options{
 reply, err := a.Ask(ctx, "天下大势如何？")
 ```
 
+## 🧱 Built with proven libraries
+
+| Concern | Library | Why |
+|---|---|---|
+| OpenAI-compatible API | [`sashabaranov/go-openai`](https://github.com/sashabaranov/go-openai) | HTTP client, auth, retries, error mapping |
+| MCP protocol | [`mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go) | stdio MCP client & tool listing |
+| Expression evaluation | [`Knetic/govaluate`](https://github.com/Knetic/govaluate) | safe arithmetic parser (no `eval`) |
+| Config parsing | [`gopkg.in/yaml.v3`](https://pkg.go.dev/gopkg.in/yaml.v3) | YAML/JSON config files |
+
 ## 🚧 Boundaries
 
 1. **No self-hosted LLM / training / fine-tuning** — model capability is fully delegated to external APIs.
 2. **No vector DB / heavy RAG engine** — knowledge retrieval is the minimal "read local files into context" form.
 3. **Single-process, single-user** — no distributed scheduling, no multi-tenant SaaS, no visual workflow editor.
-4. **Not a LangChain/AutoGen clone** — deliberately light and readable; ~2.5k LOC total.
+4. **Not a LangChain/AutoGen clone** — deliberately light and readable; HTTP/RAG/expression details delegated to proven libraries (`go-openai`, `mcp-go`, `govaluate`, `yaml.v3`).
 5. **No vendor lock-in** — no default keys; a missing key fails with setup guidance.
 6. **Not production-grade** — research/demo level; harden before production use.
 

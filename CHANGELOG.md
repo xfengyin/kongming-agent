@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - M10 (v0.9.0) — 去重复造轮子 + MCP 生态接入
+
+### Changed
+- **LLM 适配层**：手写 OpenAI HTTP 客户端（约 90 行）替换为成熟库
+  `github.com/sashabaranov/go-openai`，鉴权/超时/错误分类交给库处理
+- **计算器**：手写递归下降解析器替换为 `github.com/Knetic/govaluate`，
+  纯算术安全求值，保留除零/非法表达式/无代码执行等既有行为
+- **MCP 工具接入**：新增 `--mcp` CLI 标志与 `tools.LoadMCPTools`，
+  基于 `github.com/mark3labs/mcp-go` 启动 stdio MCP Server 并挂载其全部工具
+- **Go 版本**：`go.mod` 升到 `go 1.25.5`（mcp-go v1 要求）；CI 同步更新
+  `GO_VERSION: '1.25.5'`、`actions/checkout@v5`
+- **工具注册表**：`tools.Registry` 新增 `Close()`，CLI 退出时关闭 MCP 子进程连接
+
 ## [Unreleased] - M9 (v0.8.0 候选) — 彻底重构
 
 ### Changed

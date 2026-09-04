@@ -1,18 +1,19 @@
 // OpenAI 兼容 Provider 适配（DeepSeek / 通义 / OpenAI 通用）
 // 单一 OpenAI 兼容协议接入多家厂商，通过 BaseURL 区分。
+//
+// 实现基于 github.com/sashabaranov/go-openai，不再手写 HTTP 客户端：
+// 鉴权、重试、超时、响应解析、错误分类等细节统一交给成熟库处理。
 
 package llm
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
-	"time"
+
+	openai "github.com/sashabaranov/go-openai"
 )
 
 // 环境变量约定
@@ -26,13 +27,17 @@ const (
 // DefaultBaseURL OpenAI 官方
 const DefaultBaseURL = "https://api.openai.com/v1"
 
-// OpenAIProvider 通过 OpenAI 兼容协议访问任意厂商
+// DefaultModel 默认模型
+const DefaultModel = "gpt-4o-mini"
+
+// OpenAIProvider 通过 OpenAI 兼容协议访问任意厂商。
+// 内部使用 go-openai 的 Client 与默认 HTTP 配置（超时 120s）。
 type OpenAIProvider struct {
 	name    string
 	apiKey  string
 	baseURL string
 	model   string
-	client  *http.Client
+	client  *openai.Client
 }
 
 // NewOpenAIProvider 显式构造
@@ -41,16 +46,16 @@ func NewOpenAIProvider(apiKey, baseURL, model string) *OpenAIProvider {
 		baseURL = DefaultBaseURL
 	}
 	if model == "" {
-		model = "gpt-4o-mini"
+		model = DefaultModel
 	}
+	cfg := openai.DefaultConfig(apiKey)
+	cfg.BaseURL = strings.TrimRight(baseURL, "/")
 	return &OpenAIProvider{
 		name:    "openai-compatible",
 		apiKey:  apiKey,
-		baseURL: strings.TrimRight(baseURL, "/"),
+		baseURL: cfg.BaseURL,
 		model:   model,
-		client: &http.Client{
-			Timeout: 120 * time.Second,
-		},
+		client:  openai.NewClientWithConfig(cfg),
 	}
 }
 
@@ -66,7 +71,7 @@ func NewOpenAIProviderFromEnv() (*OpenAIProvider, error) {
 	}
 	model := os.Getenv(EnvModel)
 	if model == "" {
-		model = "gpt-4o-mini"
+		model = DefaultModel
 	}
 	p := NewOpenAIProvider(apiKey, baseURL, model)
 	if name := os.Getenv(EnvProvider); name != "" {
@@ -86,46 +91,37 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 	if req.Model == "" {
 		req.Model = p.model
 	}
-	body, err := json.Marshal(req)
+	messages := make([]openai.ChatCompletionMessage, 0, len(req.Messages))
+	for _, m := range req.Messages {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    string(m.Role),
+			Content: m.Content,
+		})
+	}
+
+	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model:       req.Model,
+		Messages:    messages,
+		Temperature: float32(req.Temperature),
+		MaxTokens:   req.MaxTokens,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("序列化请求失败: %w", err)
+		return nil, wrapAPIError(p.name, err)
 	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("构造请求失败: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
-
-	resp, err := p.client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("调用 %s 失败: %w", p.name, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return nil, fmt.Errorf("LLM API 返回 %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
-	}
-
-	var payload struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-		Model string `json:"model"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, fmt.Errorf("解析响应失败: %w", err)
-	}
-
-	if len(payload.Choices) == 0 {
+	if len(resp.Choices) == 0 {
 		return nil, fmt.Errorf("LLM API 返回空 choices")
 	}
 	return &ChatResponse{
-		Content: payload.Choices[0].Message.Content,
-		Model:   payload.Model,
+		Content: resp.Choices[0].Message.Content,
+		Model:   resp.Model,
 	}, nil
+}
+
+// wrapAPIError 将 go-openai 的错误包装成 CLI 可读信息，保留 HTTP 状态码。
+func wrapAPIError(providerName string, err error) error {
+	var apiErr *openai.APIError
+	if errors.As(err, &apiErr) {
+		return fmt.Errorf("调用 %s 失败: LLM API 返回 %d: %s", providerName, apiErr.HTTPStatusCode, strings.TrimSpace(apiErr.Message))
+	}
+	return fmt.Errorf("调用 %s 失败: %w", providerName, err)
 }
