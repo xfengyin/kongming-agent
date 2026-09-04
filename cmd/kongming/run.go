@@ -31,7 +31,7 @@ import (
 )
 
 // version 当前版本号（与 CHANGELOG 同步）
-const version = "0.8.0"
+const version = "0.9.0"
 
 // runFlags CLI 参数集合
 type runFlags struct {
@@ -43,6 +43,7 @@ type runFlags struct {
 	savePath     string
 	loadPath     string
 	toolName     string
+	mcpCmd       string
 	configPath   string
 	historyLimit int
 }
@@ -62,6 +63,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs.StringVar(&flags.savePath, "save", "", "多轮/交互会话保存为 JSON 文件（退出时写入）")
 	fs.StringVar(&flags.loadPath, "load", "", "从 JSON 文件加载会话（history + knowledge 配置）继续对话")
 	fs.StringVar(&flags.toolName, "tool", "", "启用内置工具：calc（计算器，识别\"计算 xxx\"表达式并安全求值）；空则不启用")
+	fs.StringVar(&flags.mcpCmd, "mcp", "", "启用 MCP 工具：启动一个 stdio MCP Server（示例：\"npx -y @modelcontextprotocol/server-filesystem /tmp\"）")
 	fs.StringVar(&flags.configPath, "config", "", "YAML/JSON 配置文件路径（环境变量优先；知识库目录/工具可由此设置）")
 	fs.IntVar(&flags.historyLimit, "history-limit", -1, "多轮历史按\"轮\"截断上限（0=不限；未指定则取配置文件 history_limit）")
 	showVersion := fs.Bool("version", false, "打印版本号并退出")
@@ -116,6 +118,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		printlnHuman(stdout, fmt.Sprintf("📚 知识库已加载：%s（%d 个段落）", kb.Dir(), kb.Count()), flags.jsonOut)
 	}
 	reg := buildRegistry(flags, stderr)
+	defer reg.Close()
 
 	// 多轮历史截断：flag > 配置文件；哨兵 -1 表示未指定
 	historyLimit := flags.historyLimit
@@ -236,17 +239,35 @@ func displayModel(model string) string {
 	return model
 }
 
-// buildRegistry 按 --tool 组装工具注册表；当前仅支持 calc
+// buildRegistry 按 --tool / --mcp 组装工具注册表
 func buildRegistry(flags *runFlags, stderr io.Writer) *tools.Registry {
+	reg := tools.NewRegistry()
 	switch flags.toolName {
 	case "calc":
-		return tools.NewRegistry(tools.NewCalculator())
+		reg.Add(tools.NewCalculator())
 	case "":
-		return nil
+	// 不启用内置工具
 	default:
 		fmt.Fprintf(stderr, "⚠️  未知工具：%s（当前支持：calc），已忽略\n", flags.toolName)
-		return nil
 	}
+
+	if flags.mcpCmd != "" {
+		fields := strings.Fields(flags.mcpCmd)
+		if len(fields) == 0 {
+			fmt.Fprintln(stderr, "⚠️  --mcp 不能为空")
+			return reg
+		}
+		mcpTools, err := tools.LoadMCPTools(context.Background(), fields[0], fields[1:]...)
+		if err != nil {
+			fmt.Fprintf(stderr, "⚠️  MCP 工具加载失败：%v\n", err)
+			return reg
+		}
+		for _, t := range mcpTools {
+			reg.Add(t)
+		}
+		fmt.Fprintf(stderr, "🔌 已加载 %d 个 MCP 工具\n", len(mcpTools))
+	}
+	return reg
 }
 
 // askOnce 单轮问计，组装 JSON turn 对象
