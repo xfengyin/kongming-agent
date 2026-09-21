@@ -4,7 +4,7 @@ name: Dependabot Auto Merge
 # 触发：
 #   1) workflow_run：CI / Gemini PR Review 跑完后立即尝试（快路径）
 #   2) schedule：每 30 分钟兜底扫描（慢路径，处理时序/漏触发）
-# 安全：仅处理 dependabot[bot] 的 PR，且要求 mergeable + 所有检查 bucket 为 pass/skipping。
+# 安全：仅处理 dependabot 的 PR（gh 新版把 author.login 报成 app/dependabot，故用宽松匹配），且要求 mergeable + 所有检查 bucket 为 pass/skipping。
 on:
   workflow_run:
     workflows: ["CI", "Gemini PR Review"]
@@ -37,7 +37,7 @@ jobs:
           gh pr list --repo "$REPO" --state open --limit 100 \
             --json number,title,author,mergeable,isDraft > /tmp/prs.json
 
-          jq -r '.[] | select(.author.login == "dependabot[bot]") | select(.isDraft == false) | "\(.number)\t\(.mergeable)\t\(.title)"' /tmp/prs.json \
+          jq -r '.[] | select(.author.login | test("dependabot"; "i")) | select(.isDraft == false) | "\(.number)\t\(.mergeable)\t\(.title)"' /tmp/prs.json \
           | while IFS=$'\t' read -r num mergeable title; do
               [ -z "${num:-}" ] && continue
               echo "---- PR #$num ($mergeable): $title"
