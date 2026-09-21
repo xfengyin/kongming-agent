@@ -29,7 +29,7 @@ jobs:
           gh pr list --repo "$REPO" --state open --limit 100 \
             --json number,title,author,mergeable > /tmp/prs.json
 
-          jq -r '.[] | select(.author.login == "dependabot[bot]") | select(.mergeable == "CONFLICTING") | "\(.number)\t\(.title)"' /tmp/prs.json \
+          jq -r '.[] | select(.author.login | test("dependabot"; "i")) | select(.mergeable == "CONFLICTING") | "\(.number)\t\(.title)"' /tmp/prs.json \
           | while IFS=$'\t' read -r num title; do
               [ -z "${num:-}" ] && continue
               echo "PR #$num 存在冲突：$title -> 请求 @dependabot rebase"
