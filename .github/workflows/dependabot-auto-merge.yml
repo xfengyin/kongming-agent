@@ -17,6 +17,8 @@ permissions:
   contents: write
   pull-requests: write
   actions: read
+  checks: read
+  statuses: read
 
 concurrency:
   group: dependabot-auto-merge
@@ -42,7 +44,12 @@ jobs:
               [ -z "${num:-}" ] && continue
               echo "---- PR #$num ($mergeable): $title"
               if [ "$mergeable" != "MERGEABLE" ]; then
-                echo "   跳过：当前不可合并（$mergeable）"
+                # 列表接口对未计算合并性的 PR 返回 UNKNOWN，用单 PR 接口强制复核
+                mergeable=$(gh pr view "$num" --repo "$REPO" --json mergeable --jq .mergeable 2>/dev/null || echo UNKNOWN)
+                echo "   复核合并性：$mergeable"
+              fi
+              if [ "$mergeable" = "CONFLICTING" ] || [ "$mergeable" = "DIRTY" ]; then
+                echo "   跳过：存在冲突（$mergeable）"
                 continue
               fi
 
@@ -64,8 +71,13 @@ jobs:
                 continue
               fi
 
-              echo "   ✅ 全部检查通过，执行 squash 合并"
-              gh pr merge "$num" --repo "$REPO" --squash --delete-branch \
-                || echo "   ⚠️ 合并失败（可能已合并或存在新冲突）"
+              echo "   ✅ 合并性正常且检查通过，执行 squash 合并"
+              merged=0
+              for attempt in 1 2 3; do
+                if gh pr merge "$num" --repo "$REPO" --squash --delete-branch; then merged=1; break; fi
+                echo "   ⚠️ 第 $attempt 次未成功（同轮先合并的 PR 会改动 base），5 秒后重试"
+                sleep 5
+              done
+              [ "$merged" = 1 ] || echo "   ❌ 三次都没成功，留给下一轮扫描"
             done
           echo "== 完成 =="
