@@ -3,8 +3,6 @@ name: Dependabot Auto Rebase
 # 自动化：发现与 main 冲突的 Dependabot PR，自动评论 @dependabot rebase 让其重建分支。
 # 触发：每 6 小时一次 + 手动。
 on:
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
