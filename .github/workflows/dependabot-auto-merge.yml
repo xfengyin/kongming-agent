@@ -9,8 +9,6 @@ on:
   workflow_run:
     workflows: ["CI", "Gemini PR Review"]
     types: [completed]
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
