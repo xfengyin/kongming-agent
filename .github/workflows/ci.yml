@@ -49,7 +49,15 @@ jobs:
       - name: Run tests with race detector
         run: go test -race -coverprofile=coverage.out ./...
 
-      - name: Upload coverage
+      - name: Upload coverage (Gitea)
+        if: github.server_url != 'https://github.com'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage.out
+
+      - name: Upload coverage (GitHub)
+        if: github.server_url == 'https://github.com'
         uses: actions/upload-artifact@v6
         with:
           name: coverage
@@ -83,7 +91,15 @@ jobs:
       - name: Build examples
         run: go build ./examples/...
 
-      - name: Upload artifact
+      - name: Upload artifact (Gitea)
+        if: github.server_url != 'https://github.com'
+        uses: actions/upload-artifact@v3
+        with:
+          name: kongming-binary
+          path: kongming
+
+      - name: Upload artifact (GitHub)
+        if: github.server_url == 'https://github.com'
         uses: actions/upload-artifact@v6
         with:
           name: kongming-binary
