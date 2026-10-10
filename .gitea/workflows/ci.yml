@@ -21,6 +21,12 @@ env:
   GOPROXY: https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,https://goproxy.io,direct
   GOSUMDB: sum.golang.google.cn
 
+# 同一分支的新 run 直接取代旧的：本机只有 2 个 runner 槽位，重复排队会重复跑完整构建
+# （picoclaw 一次 build-all 实测 30+ 分钟）。cancel-in-progress 用 false 时只要有一个 run
+# 卡住，整个并发组会被永久毒死（2026-10-09 在 mimiclaw-orangepi 上踩过）。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   vet:
     name: Vet
