@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   vet:
-    timeout-minutes: 60  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
+    timeout-minutes: 90  # 实测 kongming 有 48 分钟的正常 job，60 余量太薄  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
     name: Vet
     # go vet 要拉全模块并编译，属于重活：Gitea 侧钉在 NAS(amd64)，别落到 1.4G 的 OrangePi
     runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
@@ -49,7 +49,7 @@ jobs:
         run: go vet ./...
 
   test:
-    timeout-minutes: 60  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
+    timeout-minutes: 90  # 实测 kongming 有 48 分钟的正常 job，60 余量太薄  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
     name: Test (race)
     runs-on: amd64
     needs: vet
@@ -83,7 +83,7 @@ jobs:
           path: coverage.out
 
   build:
-    timeout-minutes: 60  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
+    timeout-minutes: 90  # 实测 kongming 有 48 分钟的正常 job，60 余量太薄  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
     name: Build
     # 同样要编译 + 跑 smoke，属于重活
     runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
