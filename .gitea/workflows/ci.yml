@@ -10,11 +10,17 @@ on:
 
 env:
   GO_VERSION: '1.25.5'
+  # 2026-10-09/10 实测：runner 只配了单个 goproxy.cn，偶发 TLS handshake timeout
+  # 会让 Download dependencies 直接失败（go: ... net/http: TLS handshake timeout）。
+  # 加兜底：任一代理超时 go 会自动顺次尝试下一个。
+  GOPROXY: https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,https://goproxy.io,direct
+  GOSUMDB: sum.golang.google.cn
 
 jobs:
   vet:
     name: Vet
-    runs-on: ubuntu-latest
+    # go vet 要拉全模块并编译，属于重活：Gitea 侧钉在 NAS(amd64)，别落到 1.4G 的 OrangePi
+    runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -65,7 +71,8 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    # 同样要编译 + 跑 smoke，属于重活
+    runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
     needs: test
     steps:
       - uses: actions/checkout@v5
