@@ -13,6 +13,11 @@ env:
   # 2026-10-09/10 实测：runner 只配了单个 goproxy.cn，偶发 TLS handshake timeout
   # 会让 Download dependencies 直接失败（go: ... net/http: TLS handshake timeout）。
   # 加兜底：任一代理超时 go 会自动顺次尝试下一个。
+  # Gitea 的 runner 已经把 Go 缓存 bind mount 成持久化目录：
+  #   /vol1/act-runner-cache/go-mod  -> /root/go/pkg/mod      (GOMODCACHE)
+  #   /vol1/act-runner-cache/go-build -> /root/.cache/go-build (GOCACHE)
+  # 所以 setup-go 的 actions cache 完全重复；而它的 cache-save 后置步骤实测要 ~10 分钟
+  # （tar + zstd 打包整个 Go 缓存再上传）。Gitea 侧关掉，GitHub 侧保留。
   GOPROXY: https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,https://goproxy.io,direct
   GOSUMDB: sum.golang.google.cn
 
@@ -28,7 +33,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: ${{ github.server_url == 'https://github.com' }}
 
       - name: Download dependencies
         run: go mod download
@@ -47,7 +52,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: ${{ github.server_url == 'https://github.com' }}
 
       - name: Download dependencies
         run: go mod download
@@ -81,7 +86,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: ${{ github.server_url == 'https://github.com' }}
 
       - name: Download dependencies
         run: go mod download
