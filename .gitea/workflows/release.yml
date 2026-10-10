@@ -21,6 +21,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: 90  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
     name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: amd64
     strategy:
@@ -80,6 +81,7 @@ jobs:
           if-no-files-found: error
 
   release:
+    timeout-minutes: 90  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
     name: Publish GitHub Release
     # 只有 NAS runner 配了 github_mirror；落到 1.4G 的 Pi 上连 action 都拉不下来（实测 task 1074 7s 即败）
     runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
