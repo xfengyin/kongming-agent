@@ -21,7 +21,7 @@ env:
 
 jobs:
   build:
-    timeout-minutes: 90  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
+    timeout-minutes: 90  # 注意：本机 act_runner v0.3.1 实测**不执行** job 级 timeout-minutes —— ci-smoke run#148 的 to job 声明 1 分钟、实际睡满 240 秒并成功。留着这行只为将来 runner 支持时生效；当前防挂死要靠步骤内显式超时（curl --max-time / timeout <秒> / pip --timeout）。
     name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: amd64
     strategy:
@@ -81,7 +81,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    timeout-minutes: 90  # 防挂死：实测本 Gitea 会执行这个上限（orangepi task1126 在 60.1 分钟被切断并 FAIL）
+    timeout-minutes: 90  # 注意：本机 act_runner v0.3.1 实测**不执行** job 级 timeout-minutes —— ci-smoke run#148 的 to job 声明 1 分钟、实际睡满 240 秒并成功。留着这行只为将来 runner 支持时生效；当前防挂死要靠步骤内显式超时（curl --max-time / timeout <秒> / pip --timeout）。
     name: Publish GitHub Release
     # 只有 NAS runner 配了 github_mirror；落到 1.4G 的 Pi 上连 action 都拉不下来（实测 task 1074 7s 即败）
     runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'amd64' }}
