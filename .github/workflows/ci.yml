@@ -1,7 +1,10 @@
 name: CI
 
 # P3：PR 上也跑。加触发 ≠ 有门禁，门禁由分支保护的 required_status_checks + enforce_admins 决定。
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]   # 只有 master 的 push 才跑：特性分支不再与 pull_request 撞出同名 check-run
+  pull_request:
 
 permissions:
   contents: read
