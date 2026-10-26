@@ -1,6 +1,7 @@
 name: CI
 
-on: [push]
+# P3：PR 上也跑。加触发 ≠ 有门禁，门禁由分支保护的 required_status_checks + enforce_admins 决定。
+on: [push, pull_request]
 
 permissions:
   contents: read
