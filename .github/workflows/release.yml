@@ -1,0 +1,77 @@
+# ============================================================================
+# Release —— 三平台发布（Go 交叉编译，单 job 直传 Release，无 artifact 中转）
+# 2026-10-27 新建；资产命名沿用历史 Release 形态：linux-amd64.tar.gz / darwin-arm64.tar.gz / windows-amd64.zip（新增 checksums.txt）
+# 纪律：门禁先跑（vet + test），构建只在 CI，tag 推送才发布（dispatch 默认演练不发布）。
+# ============================================================================
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "演练模式：只构建，不建 Release"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: 门禁（vet + test）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./...
+
+  build:
+    name: 交叉编译三平台并发布
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: 交叉编译（linux-amd64 / darwin-arm64 / windows-amd64）
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME#v}"
+          LDFLAGS="-s -w -X main.version=${VERSION}"
+          GOOS=linux   GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o dist/kongming-linux-amd64 ./cmd/kongming
+          GOOS=darwin  GOARCH=arm64 go build -trimpath -ldflags "$LDFLAGS" -o dist/kongming-darwin-arm64 ./cmd/kongming
+          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o dist/kongming-windows-amd64.exe ./cmd/kongming
+          ls -la dist/
+      - name: 打包（tar.gz / zip）+ 校验和
+        run: |
+          set -euo pipefail
+          cd dist
+          tar -czf kongming-linux-amd64.tar.gz  kongming-linux-amd64
+          tar -czf kongming-darwin-arm64.tar.gz kongming-darwin-arm64
+          zip -q  kongming-windows-amd64.zip   kongming-windows-amd64.exe
+          rm -f kongming-linux-amd64 kongming-darwin-arm64 kongming-windows-amd64.exe
+          sha256sum kongming-*.tar.gz kongming-*.zip > checksums.txt
+          cat checksums.txt
+      - name: 直传 GitHub Release（tag 推送才发布）
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+          make_latest: "true"
